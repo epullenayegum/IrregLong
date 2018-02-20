@@ -47,7 +47,7 @@ head(datalong)
 iiwgee <- iiwgee(formulagee=size~time + Group,
  formulaph=Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
  formulanull=NULL,data=datalong,id="id",time="time",event="event",lagvars=c("time","value"),
- invariant=c("id","basesize","Group","basenum"),maxfu=NULL,first=1)
+ invarcols=c("id","basesize","Group","basenum"),maxfu=NULL,first=1)
 ```
 This fits an inverse-intensity weighted GEE, stabilized by just the baseline hazard. In this case the recurrent events model for the visits is a proportional hazards model in which visit intensity is regressed onto randomized group, whether there was more than one new tumour at the last visit, and their interaction. Notice that the recurrent events model (```formulaph```) includes variables that are not in the original dataset. By including time and value in the ```lagvars``` parameter, the ```iiwgee``` function creates two new variables, ```time.lag``` and ```value.lag```, that are equal to time and value at the previous visit.
 
@@ -78,7 +78,7 @@ data(datalong)
 head(datalong)
 weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
  formulanull=NULL,data=datalong,id="id",time="time",event="event",lagvars=c("time","value"),
- invariant=c("basesize","Group","basenum"),maxfu=NULL,first=TRUE,frailty=FALSE)
+ invarcols=c("basesize","Group","basenum"),maxfu=NULL,first=TRUE,frailty=FALSE)
 # summary(weights$m)
 datalong$weight <- weights$iiw.weight
 head(datalong)
@@ -91,7 +91,7 @@ Once the inverse-intensity weights have been calculated, an alternative use for 
 data(datalong)
 weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
- lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
+ lagvars=c("time","value"),invarcols=c("basesize","Group","basenum"),
  maxfu=NULL,first=TRUE,frailty=FALSE)
 reg <- function(data){
 	return(data.matrix(summary(geeglm(size~time + Group, id=id,data=data))$coefficients[,1:2]))
@@ -123,7 +123,7 @@ Liangmo <- function(data,Yname,Xnames,Wnames,maxfu,baseline){
 weights <- 
  iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
    Surv(time.lag,time,event)~ Group + cluster(id),data=datalong,id="id",
-   time="time",event="event",lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
+   time="time",event="event",lagvars=c("time","value"),invarcols=c("basesize","Group","basenum"),
    maxfu=NULL,first=TRUE,frailty=TRUE)
 ```
 ```{r}

@@ -15,7 +15,7 @@ outputation(data, weights, singleobs, id, time, keep.first)
 
 \item{id}{character string indicating which column of the data identifies subjects}
 
-\item{time}{character string indicating which column of the data contains the time at which the visit occurred}
+\item{time}{character string indicating which column of the data contains the time at which the visit occurred. Needed only if keep.first=TRUE}
 
 \item{keep.first}{logical variable indicating whether the first observation should be retained with probability 1. This is useful if the data consists of an observation at baseline followed by follow-up at stochastic time points.}
 }
@@ -30,7 +30,7 @@ data(datalong)
 head(datalong)
 weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
- lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
+ lagvars=c("time","value"),invarcols=c("basesize","Group","basenum"),
  maxfu=NULL,first=TRUE,frailty=FALSE)
 data.output1 <- 
  outputation(datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=TRUE)

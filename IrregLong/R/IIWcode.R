@@ -30,7 +30,7 @@ lagby1.1var <- function(x,id,time){
 #' @param data The data to be lagged
 #' @param lagvars The names of the columns in the data to be lagged
 #' @param id A character indicating which column of the data contains subject identifiers. ids are assumed to be consecutive integers, with the first subject having id 1
-#' @param time A A character indicating which column of the data contains the times at which each of the observations in data was made
+#' @param time A character indicating which column of the data contains the times at which each of the observations in data was made
 #' @return The original data frame with lagged variables added on as columns. For example, if the data frame contains a variable named x giving the value of x for each subject i at each visit j, the returned data frame will contain a column named x.lag containing the value of x for subject i at visit j-1. If j is the first visit for subject i, the lagged value is set to NA
 #' @examples
 #' data(datalong)
@@ -55,8 +55,8 @@ lagfn <- function(data,lagvars,id,time){
 #' Add rows corresponding to censoring times to a longitudinal dataset
 #'
 #' @param data The dataset to which rows are to be added. The data should have one row per observation
-#' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfh should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
-#' @param tinvarcols A vector of column numbers corresponding to variables in data that are time-invariant.
+#' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
+#' @param tinvarcols A vector of character strings corresponding to variables in data that are time-invariant.
 #' @param id character string indicating which column of the data identifies subjects  
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param event character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones
@@ -67,7 +67,7 @@ lagfn <- function(data,lagvars,id,time){
 #' time <- c(0,4,6,2,3,1,3,5,6,7)
 #' event <- c(1,1,1,0,1,0,1,1,1,1)
 #' data <- as.data.frame(cbind(x,id,time,event,x0))
-#' addcensoredrows(data,maxfu=8,id="id",time="time",tinvarcols=5,event="event")
+#' addcensoredrows(data,maxfu=8,id="id",time="time",tinvarcols="x0",event="event")
 #' 
 #'
 #' x <- c(1:3,1:2,1:5)
@@ -80,15 +80,17 @@ lagfn <- function(data,lagvars,id,time){
 #' maxfu.time <- c(6,5,8)
 #' maxfu <- cbind(maxfu.id,maxfu.time)
 #' maxfu <- as.data.frame(maxfu)
-#' addcensoredrows(data,maxfu=maxfu,id="id",time="time",tinvarcols=5,event="event")
+#' addcensoredrows(data,maxfu=maxfu,id="id",time="time",tinvarcols="x0",event="event")
 #' @return The original dataset with extra rows corresponding to censoring times
 #' @export
 
 addcensoredrows <- function(data,maxfu,tinvarcols,id,time,event){
 	if(length(maxfu)==1){ maxfu <- rep(maxfu,length(table(data[,names(data)%in%id]))) } else maxfu <- maxfu[,2]
+	tinvarcols <- (1:ncol(data))[names(data)%in%tinvarcols]
 
 	range <- array(dim=length(tinvarcols))
 	for(col in 1:length(range)) range[col] <- min(tapply(data[,tinvarcols[col]],data[,names(data)%in%id],max)-tapply(data[,tinvarcols[col]],data[,names(data)%in%id],min))
+
 	if(max(range)>0){print("Those columns are not time invariant"); break}
 
 	extrarows <- array(dim=c(length(table(data[,names(data)%in%id])),ncol(data)))
@@ -173,7 +175,7 @@ iiw <- function(phfit,data,id,time,first){
 #' @param event character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones
 #' @param family family to be used in the GEE fit. See geeglm for documentation
 #' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
-#' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model 
+#' @param invarcols a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model 
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @return a list, with the following elements:
@@ -188,24 +190,20 @@ iiw <- function(phfit,data,id,time,first){
 #' iiwgee <- iiwgee(formulagee=size~time + Group,
 #'  formulaph=Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
 #'  formulanull=NULL,data=datalong,id="id",time="time",event="event",lagvars=c("time","value"),
-#'    invariant=c("id","basesize","Group","basenum"),maxfu=NULL,first=1)
+#'    invarcols=c("id","basesize","Group","basenum"),maxfu=NULL,first=1)
 #' summary(iiwgee$geefit)
 #' 
 #' summary(iiwgee$phfit)
 #' @export
 
-iiwgee <- function(formulagee,formulaph,formulanull,data,id,time,event,family=gaussian,lagvars,invariant,maxfu,first){
-# id is the id variable
-# lagvars are the variables to be lagged
-# invariant are the variables that are invariant. Only need to be entered if they are in formulaph
-# data should include a variable named event, which should be 1 if the event occurred ################ need to create an event argument for the formula
-# maxfu is either the administrative censoring time (same for everyone) or else is a dataframe one row for each subject, columns for ids and the censoring times. The name of the id variable should be the same as in data
+iiwgee <- function(formulagee,formulaph,formulanull,data,id,time,event,family=gaussian,lagvars,invarcols,maxfu,first){
+
 
 	# sort the data on id then time
 	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
 	
 #	lagcols <- (1:ncol(data))[is.finite(match(names(data), lagvars))]
-	invarcols <- (1:ncol(data))[is.finite(match(names(data), invariant))]
+#	invarcols <- (1:ncol(data))[is.finite(match(names(data), invariant))]
 
 	if(is.data.frame(maxfu)){if(nrow(maxfu)<length(table(data[,names(data)%in%id]))){print("Need one censoring time for each individual"); break}}  #######fix this line
 
@@ -222,10 +220,10 @@ iiwgee <- function(formulagee,formulaph,formulanull,data,id,time,event,family=ga
 	# create weights
 	if(!is.null(maxfu)) datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event) else datacox <- data
 	datacox <- lagfn(datacox,lagvars,id,time)
-	m <- coxph(formula=formulaph,data=datacox)
+	m <- coxph(formula=formulaph,data=datacox,model=TRUE)
 	data$iiw.weight <- iiw(m,lagfn(data,lagvars,id,time),id,time,first)
 	if(stabilize){
-		m0 <- coxph(formula=formulanull,data=datacox)
+		m0 <- coxph(formula=formulanull,data=datacox,model=TRUE)
 		data$nullweight <- iiw(m0,data,id,time,first)
 		data$useweight <- data$iiw.weight/data$nullweight
 	} else{ data$useweight <- data$iiw.weight}
@@ -247,7 +245,7 @@ iiwgee <- function(formulagee,formulaph,formulanull,data,id,time,event,family=ga
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param event character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones
 #' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
-#' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model 
+#' @param invarcols a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model 
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @param frailty logical variable. If TRUE, a frailty model is fit to calculate the inverse intensity weights. If FALSE, a marginal semi-parametric model is fit. Frailty models are helpful when fitting semi-parametric joint models.
@@ -260,7 +258,7 @@ iiwgee <- function(formulagee,formulaph,formulanull,data,id,time,event,family=ga
 #' data(datalong)
 #' weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
 #'  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
-#'  lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
+#'  lagvars=c("time","value"),invarcols=c("basesize","Group","basenum"),
 #'  maxfu=NULL,first=TRUE,frailty=FALSE)
 #' datalong$weight <- weights$iiw.weight
 #' head(datalong)
@@ -271,18 +269,18 @@ iiwgee <- function(formulagee,formulaph,formulanull,data,id,time,event,family=ga
 #' 
 #' weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
 #'  formulanull=NULL,data=datalong,id="id",time="time",event="event",lagvars=c("time","value"),
-#'  invariant=c("basesize","Group","basenum"),maxfu=NULL,first=TRUE,frailty=FALSE)
+#'  invarcols=c("basesize","Group","basenum"),maxfu=NULL,first=TRUE,frailty=FALSE)
 #' datalong$weight <- weights$iiw.weight
 #' head(datalong)
 #' @family iiw
 #' @export
 
-iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invariant,maxfu,first,frailty=FALSE){
-	if(is.null(maxfu) & frailty){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
+iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invarcols,maxfu,first,frailty=FALSE){
+	if(is.null(maxfu) & frailty){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)} # why?
 	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
 	
 #	lagcols <- (1:ncol(data))[is.finite(match(names(data), lagvars))]
-	invarcols <- (1:ncol(data))[is.finite(match(names(data), invariant))]
+#	invarcols <- (1:ncol(data))[is.finite(match(names(data), invariant))]
 	
 	stabilize <- !is.null(formulanull)
 
@@ -298,18 +296,23 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 
 
 	# create weights
-	if(!is.null(maxfu) | frailty){if(length(maxfu)==1) datacox <- data else datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event)}
-	if(is.null(maxfu)) datacox <- data
+	if(!frailty){if(!is.null(maxfu)) datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event) else datacox <- data}
+	if(frailty){if(!is.null(maxfu)){ if(length(maxfu)==1) datacox <- data else datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event)} else datacox <- data}
+#	if(!is.null(maxfu) | frailty){if(length(maxfu)==1) datacox <- data else datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event)}
+#	if(is.null(maxfu)) datacox <- data
+
 	datacox <- lagfn(datacox,lagvars,id,time)
+
 	if(!frailty){
-	m <- coxph(formula=formulaph,data=datacox)
+	m <- coxph(formula=formulaph,data=datacox,model=TRUE)
 	data$iiw.weight <- iiw(m,lagfn(data,lagvars,id,time),id,time,first)
 	if(stabilize){
-		m0 <- coxph(formula=formulanull,data=datacox)
+		m0 <- coxph(formula=formulanull,data=datacox,model=TRUE)
 		data$nullweight <- iiw(m0,data,id,time,first)
 		data$useweight <- data$iiw.weight/data$nullweight
 	} else{ data$useweight <- data$iiw.weight}
 	}
+
 	if(frailty){
 		m <- frailtyPenal(formula=formulaph,data=datacox, recurrentAG=TRUE, n.knots=6, kappa=10000,cross.validation=TRUE)
 
@@ -348,7 +351,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' @param weights the weights to be used in the outputation, i.e. the inverse of the probability that ay given observation will be selected in creating an outputted dataset. Ignored if singleobse=TRUE
 #' @param singleobs logical variable indicating whether a single observation should be retained for each subject
 #' @param id character string indicating which column of the data identifies subjects  
-#' @param time character string indicating which column of the data contains the time at which the visit occurred
+#' @param time character string indicating which column of the data contains the time at which the visit occurred. Needed only if keep.first=TRUE
 #' @param keep.first logical variable indicating whether the first observation should be retained with probability 1. This is useful if the data consists of an observation at baseline followed by follow-up at stochastic time points.
 #' @return the outputted dataset.
 #' @references 
@@ -362,7 +365,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' head(datalong)
 #' weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
 #'  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
-#'  lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
+#'  lagvars=c("time","value"),invarcols=c("basesize","Group","basenum"),
 #'  maxfu=NULL,first=TRUE,frailty=FALSE)
 #' data.output1 <- 
 #'  outputation(datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=TRUE)
@@ -402,7 +405,7 @@ outputation <- function(data,weights,singleobs,id,time,keep.first){
 		choosevec <- as.numeric(unif<(weights)/max(weights))
 
 		
-		if(keep.first==1){
+		if(keep.first==TRUE){
 		ids <- names(table(data[,names(data)%in%id]))
 		idnum <- array(dim=nrow(data))
 		for(i in 1:nrow(data)) idnum[i] <- (1:length(ids))[data[i,names(data)%in%id]==ids]
@@ -437,7 +440,7 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' @param weights the weights to be used in the outputation, i.e. the inverse of the probability that ay given observation will be selected in creating an outputted dataset. Ignored if singleobse=TRUE
 #' @param singleobs logical variable indicating whether a single observation should be retained for each subject
 #' @param id character string indicating which column of the data identifies subjects  
-#' @param time character string indicating which column of the data contains the time at which the visit occurred
+#' @param time character string indicating which column of the data contains the time at which the visit occurred. Needed only if keep.first=TRUE
 #' @param keep.first logical variable indicating whether the first observation should be retained with probability 1. This is useful if the data consists of an observation at baseline followed by follow-up at stochastic time points.
 #' @param var logical variable indicating whether fn returns variances in addition to point estimates
 #' @param ... other arguments to fn.
@@ -452,7 +455,7 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' data(datalong)
 #' weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
 #'  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
-#'  lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
+#'  lagvars=c("time","value"),invarcols=c("basesize","Group","basenum"),
 #'  maxfu=NULL,first=TRUE,frailty=FALSE)
 #' reg <- function(data){
 #' 	return(data.matrix(summary(geeglm(size~time + Group, id=id,data=data))$coefficients[,1:2]))
@@ -463,7 +466,7 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' @export
 
 
-mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...){
+mo <- function(noutput,fn,data,weights,singleobs,id,time=NULL,keep.first,var=TRUE,...){
 	dimlast <- as.numeric(var)+1
 	for(it in 1:noutput){
 		if(it==1){ a <- outputanalfn(fn,data,weights,singleobs,id,time,keep.first,...); if(is.vector(a)) a <- array(a,dim=c(1,length(a))); if(var) ans <- array(dim=c(noutput,dim(a))) else ans <- array(dim=c(noutput,length(a),1)); ans[1,,] <- a}
@@ -540,13 +543,14 @@ Liang <- function(data,Yname, Xnames, Wnames, id,time, maxfu,baseline ){
 		data$event <- 1
 	
 		lagcols <- (1:ncol(data))[is.finite(match(names(data), time))]
-		invarcols <- (1:ncol(data))[is.finite(match(names(data), id))]
+#		invarcols <- (1:ncol(data))[is.finite(match(names(data), id))]
 
-		datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event="event")	
+		datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=id,id=id,time=time,event="event")	
 		datacox <- lagfn(datacox,"time",id,time)
 		
 		formulanull <- Surv(time.lag,time,event)~1
 		datacox <- datacox[datacox[,names(datacox)%in%time]>0,]
+#		b <- basehaz(survfit(coxph(formulanull,data=datacox)))
 		b <- basehaz(coxph(formulanull,data=datacox))
 		indexfn <- function(t,time){ return(sum(time<t))}
 		bindex <- sapply(Ci,indexfn,time=b$time)
