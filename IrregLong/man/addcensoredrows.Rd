@@ -9,9 +9,9 @@ addcensoredrows(data, maxfu, tinvarcols, id, time, event)
 \arguments{
 \item{data}{The dataset to which rows are to be added. The data should have one row per observation}
 
-\item{maxfu}{The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfh should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.}
+\item{maxfu}{The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.}
 
-\item{tinvarcols}{A vector of column numbers corresponding to variables in data that are time-invariant.}
+\item{tinvarcols}{A vector of character strings corresponding to variables in data that are time-invariant.}
 
 \item{id}{character string indicating which column of the data identifies subjects}
 
@@ -32,7 +32,7 @@ id <- c(rep(1,3),rep(2,2),rep(3,5))
 time <- c(0,4,6,2,3,1,3,5,6,7)
 event <- c(1,1,1,0,1,0,1,1,1,1)
 data <- as.data.frame(cbind(x,id,time,event,x0))
-addcensoredrows(data,maxfu=8,id="id",time="time",tinvarcols=5,event="event")
+addcensoredrows(data,maxfu=8,id="id",time="time",tinvarcols="x0",event="event")
 
 
 x <- c(1:3,1:2,1:5)
@@ -45,5 +45,5 @@ maxfu.id <- 1:3
 maxfu.time <- c(6,5,8)
 maxfu <- cbind(maxfu.id,maxfu.time)
 maxfu <- as.data.frame(maxfu)
-addcensoredrows(data,maxfu=maxfu,id="id",time="time",tinvarcols=5,event="event")
+addcensoredrows(data,maxfu=maxfu,id="id",time="time",tinvarcols="x0",event="event")
 }
