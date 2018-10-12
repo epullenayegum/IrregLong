@@ -5,7 +5,7 @@
 \title{Compute inverse-intensity weights.}
 \usage{
 iiw.weights(formulaph, formulanull = NULL, data, id, time, event, lagvars,
-  invarcols, maxfu, first, frailty = FALSE)
+  invariant, maxfu, first, frailty = FALSE)
 }
 \arguments{
 \item{formulaph}{the formula for the proportional hazards model for the visit intensity that will be used to derive inverse-intensity weights. The formula should usually use the counting process format (i.e. Surv(start,stop,event)). If a frailty model is used, the cluster(id) term should appear before other covariates}
@@ -22,7 +22,7 @@ iiw.weights(formulaph, formulanull = NULL, data, id, time, event, lagvars,
 
 \item{lagvars}{a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit}
 
-\item{invarcols}{a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model}
+\item{invariant}{a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model}
 
 \item{maxfu}{the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data}
 
@@ -40,7 +40,7 @@ Given longitudinal data with irregular visit times, fit a Cox proportional hazar
 data(datalong)
 weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
- lagvars=c("time","value"),invarcols=c("basesize","Group","basenum"),
+ lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
  maxfu=NULL,first=TRUE,frailty=FALSE)
 datalong$weight <- weights$iiw.weight
 head(datalong)
@@ -51,7 +51,7 @@ summary(weights$m0)
 
 weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
  formulanull=NULL,data=datalong,id="id",time="time",event="event",lagvars=c("time","value"),
- invarcols=c("basesize","Group","basenum"),maxfu=NULL,first=TRUE,frailty=FALSE)
+ invariant=c("basesize","Group","basenum"),maxfu=NULL,first=TRUE,frailty=FALSE)
 datalong$weight <- weights$iiw.weight
 head(datalong)
 }

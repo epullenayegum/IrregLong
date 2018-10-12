@@ -13,7 +13,7 @@ lagfn(data, lagvars, id, time)
 
 \item{id}{A character indicating which column of the data contains subject identifiers. ids are assumed to be consecutive integers, with the first subject having id 1}
 
-\item{time}{A character indicating which column of the data contains the times at which each of the observations in data was made}
+\item{time}{A A character indicating which column of the data contains the times at which each of the observations in data was made}
 }
 \value{
 The original data frame with lagged variables added on as columns. For example, if the data frame contains a variable named x giving the value of x for each subject i at each visit j, the returned data frame will contain a column named x.lag containing the value of x for subject i at visit j-1. If j is the first visit for subject i, the lagged value is set to NA

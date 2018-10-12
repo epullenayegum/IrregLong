@@ -4,8 +4,8 @@
 \alias{mo}
 \title{Multiple outputation for longitudinal data subject to irregular observation.}
 \usage{
-mo(noutput, fn, data, weights, singleobs, id, time = NULL, keep.first,
-  var = TRUE, ...)
+mo(noutput, fn, data, weights, singleobs, id, time, keep.first, var = TRUE,
+  ...)
 }
 \arguments{
 \item{noutput}{the number of outputations to be used}
@@ -20,7 +20,7 @@ mo(noutput, fn, data, weights, singleobs, id, time = NULL, keep.first,
 
 \item{id}{character string indicating which column of the data identifies subjects}
 
-\item{time}{character string indicating which column of the data contains the time at which the visit occurred. Needed only if keep.first=TRUE}
+\item{time}{character string indicating which column of the data contains the time at which the visit occurred}
 
 \item{keep.first}{logical variable indicating whether the first observation should be retained with probability 1. This is useful if the data consists of an observation at baseline followed by follow-up at stochastic time points.}
 
@@ -38,7 +38,7 @@ Multiple outputation is a procedure whereby excess observations are repeatedly r
 data(datalong)
 weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
- lagvars=c("time","value"),invarcols=c("basesize","Group","basenum"),
+ lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
  maxfu=NULL,first=TRUE,frailty=FALSE)
 reg <- function(data){
 	return(data.matrix(summary(geeglm(size~time + Group, id=id,data=data))$coefficients[,1:2]))

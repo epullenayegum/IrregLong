@@ -5,7 +5,7 @@
 \title{Fit an inverse-intensity weighted GEE.}
 \usage{
 iiwgee(formulagee, formulaph, formulanull, data, id, time, event,
-  family = gaussian, lagvars, invarcols, maxfu, first)
+  family = gaussian, lagvars, invariant, maxfu, first)
 }
 \arguments{
 \item{formulagee}{the formula for the GEE model to be fit. The syntax used is the same as in geeglm}
@@ -26,7 +26,7 @@ iiwgee(formulagee, formulaph, formulanull, data, id, time, event,
 
 \item{lagvars}{a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit}
 
-\item{invarcols}{a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model}
+\item{invariant}{a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model}
 
 \item{maxfu}{the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data}
 
@@ -49,7 +49,7 @@ data(datalong)
 iiwgee <- iiwgee(formulagee=size~time + Group,
  formulaph=Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
  formulanull=NULL,data=datalong,id="id",time="time",event="event",lagvars=c("time","value"),
-   invarcols=c("id","basesize","Group","basenum"),maxfu=NULL,first=1)
+   invariant=c("id","basesize","Group","basenum"),maxfu=NULL,first=1)
 summary(iiwgee$geefit)
 
 summary(iiwgee$phfit)
