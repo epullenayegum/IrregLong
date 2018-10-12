@@ -276,7 +276,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 
 
 	# create weights
-	if(!is.null(maxfu) | frailty){if(length(maxfu)==1) datacox <- data else datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event)}
+	if(!is.null(maxfu)|frailty){if(length(maxfu)==1) datacox <- data else datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event)}
 	if(is.null(maxfu)) datacox <- data
 	datacox <- lagfn(datacox,lagvars,id,time)
 	if(!frailty){
@@ -289,7 +289,8 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 	} else{ data$useweight <- data$iiw.weight}
 	}
 	if(frailty){
-		m <- frailtyPenal(formula=formulaph,data=datacox, recurrentAG=TRUE, n.knots=6, kappa=10000,cross.validation=TRUE)
+		use <- (1:nrow(datacox))[!is.na(datacox[,names(datacox)%in%paste(time,".lag",sep="")])]
+		m <- frailtyPenal(formula=formulaph,data=datacox[use,], recurrentAG=TRUE, n.knots=6, kappa=10000,cross.validation=TRUE)
 
 		omit <- c("(Intercept)",paste("cluster(",id,")",sep=""))
 
@@ -298,7 +299,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 		data$iiw.weight[row.names(data)%in%row.names(Xmat)] <- exp(-Xmat[row.names(Xmat)%in%row.names(data),!columns%in%omit]%*%m$coef)
 
 	if(stabilize){
-		m0 <- frailtyPenal(formula=formulanull,data=datacox,recurrentAG=TRUE,n.knots=6,kappa=10000,cross.validation=TRUE)
+		m0 <- frailtyPenal(formula=formulanull,data=datacox[use,],recurrentAG=TRUE,n.knots=6,kappa=10000,cross.validation=TRUE)
 		omit <- c("(Intercept)",paste("cluster(",id,")",sep=""))
 
 		Xmat <- model.matrix(terms(formula(m0)),data=datacox)
