@@ -33,11 +33,11 @@ lagby1.1var <- function(x,id,time){
 #' @param time A A character indicating which column of the data contains the times at which each of the observations in data was made
 #' @return The original data frame with lagged variables added on as columns. For example, if the data frame contains a variable named x giving the value of x for each subject i at each visit j, the returned data frame will contain a column named x.lag containing the value of x for subject i at visit j-1. If j is the first visit for subject i, the lagged value is set to NA
 #' @examples
-#' data(datalong)
-#' head(datalong)
+#' data(Phenobarb)
+#' head(Phenobarb)
 #'
-#' datalong <- lagfn(datalong,c("time","value"),"id","time")
-#' head(datalong)
+#' data <- lagfn(Phenobarb,"time","Subject","time")
+#' head(data)
 #' @export
 
 
@@ -139,13 +139,38 @@ phfn <- function(datacox,regcols,data){
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.  
 #' @return A vector of inverse-intensity weights for each row of the dataset. The first observation for each subject is assumed to have an intensity of 1.
 #' @examples
-#' data(datalong)
-#' datalong <- lagfn(datalong,c("time","value"),"id","time")
-#' mph <- coxph(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
-#'  data=datalong[datalong$time>0,])
+#' data(Phenobarb)
+#' 
+#' Phenobarb$lastconc <- NA;
+#' Phenobarb$lastdose <- NA;
+#' Phenobarb$lasttime <- NA
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
+#' }
+
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
+#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
+#' 		if(is.na(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
+#' 		}
+#' 		if(is.finite(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
+#' 		}
+#' 	}	
+#' }
+#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
+#' Phenobarb <- Phenobarb[order(Phenobarb$id,Phenobarb$time),]
+#' Phenobarb$lastconcobs <- 0
+#' Phenobarb$lastconcobs[is.finite(Phenobarb$lastconc)] <- Phenobarb$lastconc[is.finite(Phenobarb$lastconc)]
+#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
+#' Phenobarb <- lagfn(Phenobarb,"time","id","time")
+
+#' mph <- coxph(Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(id),data=Phenobarb)
 #' summary(mph)
-#' datalong$weight <- iiw(mph,datalong,"id","time",TRUE)
-#' head(datalong)
+#' Phenobarb$weight <- iiw(mph,Phenobarb,"id","time",TRUE)
+#' head(Phenobarb)
 #' @export
 
 iiw <- function(phfit,data,id,time,first){
@@ -184,17 +209,50 @@ iiw <- function(phfit,data,id,time,first){
 #' \item Lin H, Scharfstein DO, Rosenheck RA. Analysis of Longitudinal data with Irregular, Informative Follow-up. Journal of the Royal Statistical Society, Series B (2004), 66:791-813 
 #' \item Buzkova P, Lumley T. Longitudinal data analysis for generalized linear models with follow-up dependent on outcome-related variables. The Canadian Journal of Statistics 2007; 35:485-500.}
 #' @examples
-#' data(datalong)
-#' iiwgee <- iiwgee(formulagee=size~time + Group,
-#'  formulaph=Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
-#'  formulanull=NULL,data=datalong,id="id",time="time",event="event",lagvars=c("time","value"),
-#'    invariant=c("id","basesize","Group","basenum"),maxfu=NULL,first=1)
-#' summary(iiwgee$geefit)
+#' data(Phenobarb)
 #' 
-#' summary(iiwgee$phfit)
+#' Phenobarb$lastconc <- NA;
+#' Phenobarb$lastdose <- NA;
+#' Phenobarb$lasttime <- NA
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
+#' }
+
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
+#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
+#' 		if(is.na(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
+#' 		}
+#' 		if(is.finite(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
+#' 		}
+#' 	}	
+#' }
+#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
+#' Phenobarb <- Phenobarb[order(Phenobarb$id,Phenobarb$time),]
+#' Phenobarb$lastconcobs <- 0
+#' Phenobarb$lastconcobs[is.finite(Phenobarb$lastconc)] <- Phenobarb$lastconc[is.finite(Phenobarb$lastconc)]
+#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
+#' Phenobarb <- lagfn(Phenobarb,"time","id","time")
+
+#' miiwgee <- iiwgee(conc ~ time*log(time),Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(id),formulanull=NULL,id="id",time="time",event="event",data=Phenobarb,invariant="id",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
+#' summary(miiwgee$geefit)
+#' summary(miiwgee$phfit)
+
+#' # compare to results without weighting
+#' m <- geeglm(conc ~ time*log(time) , id=Subject, data=Phenobarb); print(summary(m))
+#' time <- (1:200)
+#' unweighted <- cbind(rep(1,200),time,log(time),time*log(time))%*%m$coefficients
+#' weighted <- cbind(rep(1,200),time,log(time),time*log(time))%*%miiwgee$geefit$coefficients
+#' plot(Phenobarb$time,Phenobarb$conc,xlim=c(0,200),pch=16)
+#' lines(time,unweighted,type="l")
+#' lines(time,weighted,col=2)
+#' legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)
 #' @export
 
-iiwgee <- function(formulagee,formulaph,formulanull,data,id,time,event,family=gaussian,lagvars,invariant,maxfu,first){
+iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,family=gaussian,lagvars,invariant,maxfu,first){
 # id is the id variable
 # lagvars are the variables to be lagged
 # invariant are the variables that are invariant. Only need to be entered if they are in formulaph
@@ -229,29 +287,45 @@ iiwgee <- function(formulagee,formulaph,formulanull,data,id,time,event,family=ga
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @param frailty logical variable. If TRUE, a frailty model is fit to calculate the inverse intensity weights. If FALSE, a marginal semi-parametric model is fit. Frailty models are helpful when fitting semi-parametric joint models.
-#' @return a vector of inverse-intensity weights
+#' @return a vector of inverse-intensity weights, ordered on id then time
+#' @description Since the vector of weights is ordered on id and time, if you intend to merge these weights onto your original dataset it is highly recommended that you sort the data before running iiw.weights
 #' @references 
 #' \itemize{
 #' \item Lin H, Scharfstein DO, Rosenheck RA. Analysis of Longitudinal data with Irregular, Informative Follow-up. Journal of the Royal Statistical Society, Series B (2004), 66:791-813 
 #' \item Buzkova P, Lumley T. Longitudinal data analysis for generalized linear models with follow-up dependent on outcome-related variables. The Canadian Journal of Statistics 2007; 35:485-500.}
 #' @examples
-#' data(datalong)
-#' weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
-#'  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
-#'  lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
-#'  maxfu=NULL,first=TRUE,frailty=FALSE)
-#' datalong$weight <- weights$iiw.weight
-#' head(datalong)
+#' data(Phenobarb)
 #' 
-#' summary(weights$m)
-#' 
-#' summary(weights$m0)
-#' 
-#' weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
-#'  formulanull=NULL,data=datalong,id="id",time="time",event="event",lagvars=c("time","value"),
-#'  invariant=c("basesize","Group","basenum"),maxfu=NULL,first=TRUE,frailty=FALSE)
-#' datalong$weight <- weights$iiw.weight
-#' head(datalong)
+#' Phenobarb$lastconc <- NA;
+#' Phenobarb$lastdose <- NA;
+#' Phenobarb$lasttime <- NA
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
+#' }
+
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
+#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
+#' 		if(is.na(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
+#' 		}
+#' 		if(is.finite(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
+#' 		}
+#' 	}	
+#' }
+#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
+
+#' i <- iiw.weights(Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb,invariant="Subject",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
+#' Phenobarb$weight <- i$iiw.weight
+#' summary(i$m)
+#' # can use to fit a weighted GEE
+#' mw <- geeglm(conc ~ time*log(time) , id=Subject, data=Phenobarb, weights=weight)
+#' summary(mw)
+#' # agrees with results through the single command iiwgee
+#' miiwgee <- iiwgee(conc ~ time*log(time),Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(id),formulanull=NULL,id="id",time="time",event="event",data=Phenobarb,invariant="id",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
+#' summary(miiwgee$geefit)
 #' @family iiw
 #' @export
 
@@ -337,24 +411,40 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' \item Pullenayegum EM. Multiple outputation for the analysis of longitudinal data subject to irregular observation. Statistics in Medicine (in press).}
 #' @family mo
 #' @examples
-#' data(datalong)
-#' head(datalong)
-#' weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
-#'  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
-#'  lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
-#'  maxfu=NULL,first=TRUE,frailty=FALSE)
-#' data.output1 <- 
-#'  outputation(datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=TRUE)
+#' data(Phenobarb)
+#' 
+#' Phenobarb$lastconc <- NA;
+#' Phenobarb$lastdose <- NA;
+#' Phenobarb$lasttime <- NA
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
+#' }
+
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
+#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
+#' 		if(is.na(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
+#' 		}
+#' 		if(is.finite(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
+#' 		}
+#' 	}	
+#' }
+#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
+#' i <- iiw.weights(Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb,invariant="Subject",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
+#' Phenobarb$weight <- i$iiw.weight
+#' Phenobarb.concobs <- Phenobarb[Phenobarb$event==1,] 
+#' head(Phenobarb.concobs)
+#' data.output1 <-   outputation(Phenobarb.concobs,Phenobarb.concobs$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
 #' head(data.output1)
-#' data.output2 <- 
-#'  outputation(datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=TRUE)
+#' data.output2 <-   outputation(Phenobarb.concobs,Phenobarb.concobs$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
 #' head(data.output2)
-#' data.output3 <- 
-#'  outputation(datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+#' data.output3 <-   outputation(Phenobarb.concobs,Phenobarb.concobs$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
 #' head(data.output3)
-#' data.output4 <- 
-#'  outputation(datalong,weights$iiw.weight,singleobs=TRUE,id="id",time="time",keep.first=FALSE)
-#' head(data.output4)
+#' # Note that the outputted dataset varies with each command run; outputation is done at random
+
 #' @export
 
 
@@ -428,17 +518,38 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' \item Pullenayegum EM. Multiple outputation for the analysis of longitudinal data subject to irregular observation. Statistics in Medicine (in press)}.
 #' @family mo
 #' @examples
-#' data(datalong)
-#' weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
-#'  Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
-#'  lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
-#'  maxfu=NULL,first=TRUE,frailty=FALSE)
-#' reg <- function(data){
-#' 	return(data.matrix(summary(geeglm(size~time + Group, id=id,data=data))$coefficients[,1:2]))
-#' }
-#' mo(20,reg,datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+#' data(Phenobarb)
 #' 
-#' mo(5,reg,datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+#' Phenobarb$lastconc <- NA;
+#' Phenobarb$lastdose <- NA;
+#' Phenobarb$lasttime <- NA
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
+#' }
+
+#' for(i in 2:nrow(Phenobarb)){
+#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
+#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
+#' 		if(is.na(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
+#' 		}
+#' 		if(is.finite(Phenobarb$conc[i-1])){
+#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
+#' 		}
+#' 	}	
+#' }
+#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
+#' i <- iiw.weights(Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb,invariant="Subject",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
+#' Phenobarb$weight <- i$iiw.weight
+#' Phenobarb.concobs <- Phenobarb[Phenobarb$event==1,] 
+#' reg <- function(data){
+#'  	return(data.matrix(summary(geeglm(conc ~ time*log(time) , id=Subject, data=data))$coefficients[,1:4]))
+#'  }
+#' 
+#' mo(20,reg,Phenobarb.concobs,Phenobarb.concobs$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+#' # does not yield valid variance estimates - once thinned the dataset contains fewer than 30 subjects for most outputations, so the sandwich variance estimate from the GEE is too small
+
 #' @export
 
 
