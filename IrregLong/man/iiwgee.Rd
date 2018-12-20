@@ -4,8 +4,8 @@
 \alias{iiwgee}
 \title{Fit an inverse-intensity weighted GEE.}
 \usage{
-iiwgee(formulagee, formulaph, formulanull, data, id, time, event,
-  family = gaussian, lagvars, invariant, maxfu, first)
+iiwgee(formulagee, formulaph, formulanull = NULL, data, id, time, event,
+  family = gaussian, lagvars, invariant, maxfu, lagfirst = NA, first)
 }
 \arguments{
 \item{formulagee}{the formula for the GEE model to be fit. The syntax used is the same as in geeglm}
@@ -30,6 +30,8 @@ iiwgee(formulagee, formulaph, formulanull, data, id, time, event,
 
 \item{maxfu}{the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data}
 
+\item{lagfirst}{The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
+
 \item{first}{logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.}
 }
 \value{
@@ -45,14 +47,27 @@ Let the outcome of interest be \eqn{Y} and suppose that subject i has \eqn{j^{th
 Warning: Due to the way some gee functions incorporate weights, if using inverse-intensity weighting you should use working independence.
 }
 \examples{
-data(datalong)
-iiwgee <- iiwgee(formulagee=size~time + Group,
- formulaph=Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
- formulanull=NULL,data=datalong,id="id",time="time",event="event",lagvars=c("time","value"),
-   invariant=c("id","basesize","Group","basenum"),maxfu=NULL,first=1)
-summary(iiwgee$geefit)
+library(nlme)
+data(Phenobarb)
+Phenobarb$id <- as.numeric(Phenobarb$Subject)
+Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
+Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
+miiwgee <- iiwgee(conc ~ time*log(time),
+Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),
+formulanull=NULL,id="id",time="time",event="event",data=Phenobarb.conc,invariant="id",
+lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+summary(miiwgee$geefit)
+summary(miiwgee$phfit)
 
-summary(iiwgee$phfit)
+# compare to results without weighting
+m <- geeglm(conc ~ time*log(time) , id=Subject, data=Phenobarb); print(summary(m))
+time <- (1:200)
+unweighted <- cbind(rep(1,200),time,log(time),time*log(time))\%*\%m$coefficients
+weighted <- cbind(rep(1,200),time,log(time),time*log(time))\%*\%miiwgee$geefit$coefficients
+plot(Phenobarb$time,Phenobarb$conc,xlim=c(0,200),pch=16)
+lines(time,unweighted,type="l")
+lines(time,weighted,col=2)
+legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)
 }
 \references{
 \itemize{ 

@@ -26,24 +26,26 @@ the outputted dataset.
 Multiple outputation is a procedure whereby excess observations are repeatedly randomly sampled and discarded. The method was originally developed to handle clustered data where cluster size is informative, for example when studying pups in a litter. In this case, analysis that ignores cluster size results in larger litters being over-represented in a marginal analysis. Multiple outputation circumvents this problem by randomly selecting one observation per cluster. Multiple outputation has been further adapted to handle longitudinal data subject to irregular observation; here the probability of being retained on any given outputation is inversely proportional to the visit intensity. This function creates a single outputted dataset.
 }
 \examples{
-data(datalong)
-head(datalong)
-weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
- Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
- lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
- maxfu=NULL,first=TRUE,frailty=FALSE)
-data.output1 <- 
- outputation(datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=TRUE)
+library(nlme)
+data(Phenobarb)
+Phenobarb$id <- as.numeric(Phenobarb$Subject)
+Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
+Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
+i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(Subject),
+id="Subject",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
+lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+Phenobarb.conc$weight <- i$iiw.weight
+head(Phenobarb.conc)
+data.output1 <-   outputation(Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,
+id="id",time="time",keep.first=FALSE)
 head(data.output1)
-data.output2 <- 
- outputation(datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=TRUE)
+data.output2 <-   outputation(Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,
+id="id",time="time",keep.first=FALSE)
 head(data.output2)
-data.output3 <- 
- outputation(datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+data.output3 <-   outputation(Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,
+id="id",time="time",keep.first=FALSE)
 head(data.output3)
-data.output4 <- 
- outputation(datalong,weights$iiw.weight,singleobs=TRUE,id="id",time="time",keep.first=FALSE)
-head(data.output4)
+# Note that the outputted dataset varies with each command run; outputation is done at random
 }
 \references{
 \itemize{

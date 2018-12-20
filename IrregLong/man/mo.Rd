@@ -35,17 +35,24 @@ a list containing the multiple outpution estimate of the function fn applied to 
 Multiple outputation is a procedure whereby excess observations are repeatedly randomly sampled and discarded. The method was originally developed to handle clustered data where cluster size is informative, for example when studying pups in a litter. In this case, analysis that ignores cluster size results in larger litters being over-represented in a marginal analysis. Multiple outputation circumvents this problem by randomly selecting one observation per cluster. Multiple outputation has been further adapted to handle longitudinal data subject to irregular observation; here the probability of being retained on any given outputation is inversely proportional to the visit intensity. This function creates multiply outputted datasets, analyses each separately, and combines the results to produce a single estimate.
 }
 \examples{
-data(datalong)
-weights <- iiw.weights(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
- Surv(time.lag,time,event)~ Group,data=datalong,id="id",time="time",event="event",
- lagvars=c("time","value"),invariant=c("basesize","Group","basenum"),
- maxfu=NULL,first=TRUE,frailty=FALSE)
+library(nlme)
+data(Phenobarb)
+Phenobarb$id <- as.numeric(Phenobarb$Subject)
+Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
+Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
+i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(Subject),
+id="id",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
+lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+Phenobarb.conc$weight <- i$iiw.weight
 reg <- function(data){
-	return(data.matrix(summary(geeglm(size~time + Group, id=id,data=data))$coefficients[,1:2]))
-}
-mo(20,reg,datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+ 	return(data.matrix(summary(geeglm(conc ~ time*log(time) , 
+ 	id=Subject, data=data))$coefficients[,1:2]))
+ }
 
-mo(5,reg,datalong,weights$iiw.weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+mo(20,reg,Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+# does not yield valid variance estimates
+# once thinned the dataset contains fewer than 30 subjects for most outputations, 
+# so the sandwich variance estimate from the GEE is too small
 }
 \references{
 \itemize{

@@ -10,13 +10,13 @@ lagby1.1person <- function(x){
 }
 
 
-lagby1.1var <- function(x,id,time){
-	if(length(x)>1){ 
+lagby1.1var <- function(x,id,time,lagfirst=NA){
+	if(length(x)>1){
 		lagx <- c(NA,x[-length(x)])
 		# identify first observation for each subject
 		tmin <- tapply(time,id,min)
 		tminx <- tmin[id]
-		lagx[time==tminx] <- NA
+		lagx[time==tminx] <- lagfirst
 		return(lagx)
 	}
 	else return(NA)
@@ -30,9 +30,11 @@ lagby1.1var <- function(x,id,time){
 #' @param data The data to be lagged
 #' @param lagvars The names of the columns in the data to be lagged
 #' @param id A character indicating which column of the data contains subject identifiers. ids are assumed to be consecutive integers, with the first subject having id 1
-#' @param time A A character indicating which column of the data contains the times at which each of the observations in data was made
+#' @param time A character indicating which column of the data contains the times at which each of the observations in data was made
+#' @param lagfirst The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @return The original data frame with lagged variables added on as columns. For example, if the data frame contains a variable named x giving the value of x for each subject i at each visit j, the returned data frame will contain a column named x.lag containing the value of x for subject i at visit j-1. If j is the first visit for subject i, the lagged value is set to NA
 #' @examples
+#' library(nlme)
 #' data(Phenobarb)
 #' head(Phenobarb)
 #'
@@ -41,11 +43,11 @@ lagby1.1var <- function(x,id,time){
 #' @export
 
 
-lagfn <- function(data,lagvars,id,time){
+lagfn <- function(data,lagvars,id,time,lagfirst=NA){
 
 #	lagged <- sapply(data[,columns],lagby1.1var,data[,names(data)%in%id],data[,names(data)%in%time])
   columns <- (1:ncol(data))[is.finite(match(names(data), lagvars))]
-  	lagged <- apply(array(data.matrix(data[,columns]),dim=c(nrow(data),length(columns))),2,lagby1.1var,data[,names(data)%in%id],data[,names(data)%in%time])
+  	lagged <- apply(array(data.matrix(data[,columns]),dim=c(nrow(data),length(columns))),2,lagby1.1var,data[,names(data)%in%id],data[,names(data)%in%time],lagfirst=lagfirst)
 	lagged <- as.data.frame(lagged)
 	for(col in 1:length(columns)) names(lagged)[col] <- paste(names(data)[columns][col],".lag",sep="")
 	data <- cbind(data,lagged)
@@ -57,7 +59,7 @@ lagfn <- function(data,lagvars,id,time){
 #' @param data The dataset to which rows are to be added. The data should have one row per observation
 #' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfh should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
 #' @param tinvarcols A vector of column numbers corresponding to variables in data that are time-invariant.
-#' @param id character string indicating which column of the data identifies subjects  
+#' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param event character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones
 #' @examples
@@ -68,7 +70,7 @@ lagfn <- function(data,lagvars,id,time){
 #' event <- c(1,1,1,0,1,0,1,1,1,1)
 #' data <- as.data.frame(cbind(x,id,time,event,x0))
 #' addcensoredrows(data,maxfu=8,id="id",time="time",tinvarcols=5,event="event")
-#' 
+#'
 #'
 #' x <- c(1:3,1:2,1:5)
 #' x0 <- c(rep(2,3),rep(0,2),rep(1,5))
@@ -136,40 +138,19 @@ phfn <- function(datacox,regcols,data){
 #' @param data The dataset featuring longitudinal data subject to irregular observation for which inverse-intensity weights are desired
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param id character string indicating which column of the data identifies subjects
-#' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.  
+#' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @return A vector of inverse-intensity weights for each row of the dataset. The first observation for each subject is assumed to have an intensity of 1.
 #' @examples
+#' library(nlme)
 #' data(Phenobarb)
-#' 
-#' Phenobarb$lastconc <- NA;
-#' Phenobarb$lastdose <- NA;
-#' Phenobarb$lasttime <- NA
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
-#' }
-
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
-#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
-#' 		if(is.na(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
-#' 		}
-#' 		if(is.finite(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
-#' 		}
-#' 	}	
-#' }
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-#' Phenobarb <- Phenobarb[order(Phenobarb$id,Phenobarb$time),]
-#' Phenobarb$lastconcobs <- 0
-#' Phenobarb$lastconcobs[is.finite(Phenobarb$lastconc)] <- Phenobarb$lastconc[is.finite(Phenobarb$lastconc)]
 #' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-#' Phenobarb <- lagfn(Phenobarb,"time","id","time")
-
-#' mph <- coxph(Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(id),data=Phenobarb)
+#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
+#' Phenobarb.conc <- lagfn(Phenobarb.conc,c("time","conc"),"id","time")
+#'
+#' mph <- coxph(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),data=Phenobarb.conc)
 #' summary(mph)
-#' Phenobarb$weight <- iiw(mph,Phenobarb,"id","time",TRUE)
+#' Phenobarb.conc$weight <- iiw(mph,Phenobarb.conc,"id","time",TRUE)
 #' head(Phenobarb)
 #' @export
 
@@ -192,55 +173,36 @@ iiw <- function(phfit,data,id,time,first){
 #' @param formulaph the formula for the proportional hazards model for the visit intensity that will be used to derive inverse-intensity weights. The formula should usually use the counting process format (i.e. Surv(start,stop,event))
 #' @family iiw
 #' @param formulanull if stabilised weights are to be used, the formula for the null model used to stabilise the weights
-#' @param data data frame containing the variables in the model 
-#' @param id character string indicating which column of the data identifies subjects  
+#' @param data data frame containing the variables in the model
+#' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param event character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones
 #' @param family family to be used in the GEE fit. See geeglm for documentation
 #' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
-#' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model 
+#' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
+#' @param lagfirst The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @return a list, with the following elements:
 #' \item{geefit}{the fitted GEE, see documentation for geeglm for details}
 #' \item{phfit}{the fitted proportional hazards model, see documentation for coxph for details}
 #' @references
-#' \itemize{ 
-#' \item Lin H, Scharfstein DO, Rosenheck RA. Analysis of Longitudinal data with Irregular, Informative Follow-up. Journal of the Royal Statistical Society, Series B (2004), 66:791-813 
+#' \itemize{
+#' \item Lin H, Scharfstein DO, Rosenheck RA. Analysis of Longitudinal data with Irregular, Informative Follow-up. Journal of the Royal Statistical Society, Series B (2004), 66:791-813
 #' \item Buzkova P, Lumley T. Longitudinal data analysis for generalized linear models with follow-up dependent on outcome-related variables. The Canadian Journal of Statistics 2007; 35:485-500.}
 #' @examples
+#' library(nlme)
 #' data(Phenobarb)
-#' 
-#' Phenobarb$lastconc <- NA;
-#' Phenobarb$lastdose <- NA;
-#' Phenobarb$lasttime <- NA
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
-#' }
-
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
-#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
-#' 		if(is.na(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
-#' 		}
-#' 		if(is.finite(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
-#' 		}
-#' 	}	
-#' }
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-#' Phenobarb <- Phenobarb[order(Phenobarb$id,Phenobarb$time),]
-#' Phenobarb$lastconcobs <- 0
-#' Phenobarb$lastconcobs[is.finite(Phenobarb$lastconc)] <- Phenobarb$lastconc[is.finite(Phenobarb$lastconc)]
 #' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-#' Phenobarb <- lagfn(Phenobarb,"time","id","time")
-
-#' miiwgee <- iiwgee(conc ~ time*log(time),Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(id),formulanull=NULL,id="id",time="time",event="event",data=Phenobarb,invariant="id",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
+#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
+#' miiwgee <- iiwgee(conc ~ time*log(time),
+#' Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),
+#' formulanull=NULL,id="id",time="time",event="event",data=Phenobarb.conc,invariant="id",
+#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
 #' summary(miiwgee$geefit)
 #' summary(miiwgee$phfit)
-
+#'
 #' # compare to results without weighting
 #' m <- geeglm(conc ~ time*log(time) , id=Subject, data=Phenobarb); print(summary(m))
 #' time <- (1:200)
@@ -252,7 +214,7 @@ iiw <- function(phfit,data,id,time,first){
 #' legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)
 #' @export
 
-iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,family=gaussian,lagvars,invariant,maxfu,first){
+iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,family=gaussian,lagvars,invariant,maxfu,lagfirst=NA,first){
 # id is the id variable
 # lagvars are the variables to be lagged
 # invariant are the variables that are invariant. Only need to be entered if they are in formulaph
@@ -261,11 +223,11 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 
 	# sort the data on id then time
 	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
-	
-	weights <- iiw.weights(formulaph, formulanull,data=data,id=id,time=time,event=event,lagvars=lagvars,invariant=invariant,maxfu=maxfu,first=first,frailty=FALSE)
+
+	weights <- iiw.weights(formulaph, formulanull,data=data,id=id,time=time,event=event,lagvars=lagvars,invariant=invariant,maxfu=maxfu,first=first,lagfirst=lagfirst,frailty=FALSE)
 	data$useweight <- weights$iiw.weight
 	m <- weights$m
-	
+
 	# fit IIW-GEE
 	data$iddup <- data[,names(data)%in%id]
 	mgee <- geeglm(formulagee,id=iddup,data=data,corstr="independence",weights=useweight,family=family)
@@ -278,64 +240,52 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' @param formulaph the formula for the proportional hazards model for the visit intensity that will be used to derive inverse-intensity weights. The formula should usually use the counting process format (i.e. Surv(start,stop,event)). If a frailty model is used, the cluster(id) term should appear before other covariates
 #' @family iiw
 #' @param formulanull if stabilised weights are to be used, the formula for the null model used to stabilise the weights
-#' @param data data frame containing the variables in the model 
-#' @param id character string indicating which column of the data identifies subjects  
+#' @param data data frame containing the variables in the model
+#' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param event character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones
 #' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
-#' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model 
+#' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
+#' @param lagfirst The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @param frailty logical variable. If TRUE, a frailty model is fit to calculate the inverse intensity weights. If FALSE, a marginal semi-parametric model is fit. Frailty models are helpful when fitting semi-parametric joint models.
 #' @return a vector of inverse-intensity weights, ordered on id then time
 #' @description Since the vector of weights is ordered on id and time, if you intend to merge these weights onto your original dataset it is highly recommended that you sort the data before running iiw.weights
-#' @references 
+#' @references
 #' \itemize{
-#' \item Lin H, Scharfstein DO, Rosenheck RA. Analysis of Longitudinal data with Irregular, Informative Follow-up. Journal of the Royal Statistical Society, Series B (2004), 66:791-813 
+#' \item Lin H, Scharfstein DO, Rosenheck RA. Analysis of Longitudinal data with Irregular, Informative Follow-up. Journal of the Royal Statistical Society, Series B (2004), 66:791-813
 #' \item Buzkova P, Lumley T. Longitudinal data analysis for generalized linear models with follow-up dependent on outcome-related variables. The Canadian Journal of Statistics 2007; 35:485-500.}
 #' @examples
+#' library(nlme)
 #' data(Phenobarb)
-#' 
-#' Phenobarb$lastconc <- NA;
-#' Phenobarb$lastdose <- NA;
-#' Phenobarb$lasttime <- NA
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
-#' }
-
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
-#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
-#' 		if(is.na(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
-#' 		}
-#' 		if(is.finite(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
-#' 		}
-#' 	}	
-#' }
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-
-#' i <- iiw.weights(Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb,invariant="Subject",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
-#' Phenobarb$weight <- i$iiw.weight
+#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
+#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
+#' i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(Subject),
+#' id="id",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
+#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+#' Phenobarb.conc$weight <- i$iiw.weight
 #' summary(i$m)
 #' # can use to fit a weighted GEE
-#' mw <- geeglm(conc ~ time*log(time) , id=Subject, data=Phenobarb, weights=weight)
+#' mw <- geeglm(conc ~ time*log(time) , id=Subject, data=Phenobarb.conc, weights=weight)
 #' summary(mw)
 #' # agrees with results through the single command iiwgee
-#' miiwgee <- iiwgee(conc ~ time*log(time),Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(id),formulanull=NULL,id="id",time="time",event="event",data=Phenobarb,invariant="id",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
+#' miiwgee <- iiwgee(conc ~ time*log(time),
+#' Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),
+#' formulanull=NULL,id="id",time="time",event="event",data=Phenobarb.conc,invariant="id",
+#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
 #' summary(miiwgee$geefit)
 #' @family iiw
 #' @export
 
-iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invariant,maxfu,first,frailty=FALSE){
+iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invariant,maxfu,lagfirst=lagfirst,first,frailty=FALSE){
 	if(is.null(maxfu) & frailty){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
 	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
-	
+
 #	lagcols <- (1:ncol(data))[is.finite(match(names(data), lagvars))]
 	invarcols <- (1:ncol(data))[is.finite(match(names(data), invariant))]
-	
+
 	stabilize <- !is.null(formulanull)
 
 	if(!is.null(maxfu)){if(is.data.frame(maxfu)){if(nrow(maxfu)<length(table(data[,names(data)%in%id]))){print("Need one censoring time for each individual"); break}}}  #######fix this line
@@ -352,7 +302,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 	# create weights
 	if(!is.null(maxfu)|frailty){if(length(maxfu)==1) datacox <- data else datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event)}
 	if(is.null(maxfu)) datacox <- data
-	datacox <- lagfn(datacox,lagvars,id,time)
+	datacox <- lagfn(datacox,lagvars,id,time,lagfirst)
 	if(!frailty){
 	m <- coxph(formula=formulaph,data=datacox)
 	data$iiw.weight <- iiw(m,lagfn(data,lagvars,id,time),id,time,first)
@@ -383,7 +333,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 	} else{ data$useweight <- data$iiw.weight; m0 <- NULL}
 
 	}
-	if(stabilize==FALSE) m0 <- NULL 
+	if(stabilize==FALSE) m0 <- NULL
 	tmin <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],min)
 	firstvisit <- as.numeric(data[,names(data)%in%time]==tmin[data[,names(data)%in%id]])
 	if(first){data$useweight[firstvisit==1] <- 1}
@@ -400,51 +350,37 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' @param data the original dataset on which multiple outputation is to be performed
 #' @param weights the weights to be used in the outputation, i.e. the inverse of the probability that ay given observation will be selected in creating an outputted dataset. Ignored if singleobse=TRUE
 #' @param singleobs logical variable indicating whether a single observation should be retained for each subject
-#' @param id character string indicating which column of the data identifies subjects  
+#' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param keep.first logical variable indicating whether the first observation should be retained with probability 1. This is useful if the data consists of an observation at baseline followed by follow-up at stochastic time points.
 #' @return the outputted dataset.
-#' @references 
+#' @references
 #' \itemize{
 #' \item Hoffman E, Sen P, Weinberg C. Within-cluster resampling. Biometrika 2001; 88:1121-1134
 #' \item Follmann D, Proschan M, Leifer E. Multiple outputation: inference for complex clustered data by averaging analyses from independent data. Biometrics 2003; 59:420-429
 #' \item Pullenayegum EM. Multiple outputation for the analysis of longitudinal data subject to irregular observation. Statistics in Medicine (in press).}
 #' @family mo
 #' @examples
+#' library(nlme)
 #' data(Phenobarb)
-#' 
-#' Phenobarb$lastconc <- NA;
-#' Phenobarb$lastdose <- NA;
-#' Phenobarb$lasttime <- NA
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
-#' }
-
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
-#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
-#' 		if(is.na(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
-#' 		}
-#' 		if(is.finite(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
-#' 		}
-#' 	}	
-#' }
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-#' i <- iiw.weights(Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb,invariant="Subject",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
-#' Phenobarb$weight <- i$iiw.weight
-#' Phenobarb.concobs <- Phenobarb[Phenobarb$event==1,] 
-#' head(Phenobarb.concobs)
-#' data.output1 <-   outputation(Phenobarb.concobs,Phenobarb.concobs$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
+#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
+#' i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(Subject),
+#' id="Subject",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
+#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+#' Phenobarb.conc$weight <- i$iiw.weight
+#' head(Phenobarb.conc)
+#' data.output1 <-   outputation(Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,
+#' id="id",time="time",keep.first=FALSE)
 #' head(data.output1)
-#' data.output2 <-   outputation(Phenobarb.concobs,Phenobarb.concobs$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+#' data.output2 <-   outputation(Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,
+#' id="id",time="time",keep.first=FALSE)
 #' head(data.output2)
-#' data.output3 <-   outputation(Phenobarb.concobs,Phenobarb.concobs$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+#' data.output3 <-   outputation(Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,
+#' id="id",time="time",keep.first=FALSE)
 #' head(data.output3)
 #' # Note that the outputted dataset varies with each command run; outputation is done at random
-
 #' @export
 
 
@@ -460,7 +396,7 @@ outputation <- function(data,weights,singleobs,id,time,keep.first){
 		for(row in 2:nrow(data)){
 			if(data[row,names(data)%in%id]==data[row-1,names(data)%in%id]) obsnum[row] <- obsnum[row-1] + 1
 		}
-		
+
 		nobs <- tapply(data[,names(data)%in%id],data[,names(data)%in%id],length)
 		samples <- sapply(nobs,sample.int,size=1)
 		include <- obsnum==samples[data[,names(data)%in%id]]
@@ -470,7 +406,7 @@ outputation <- function(data,weights,singleobs,id,time,keep.first){
 		unif <- runif(nrow(data))
 		choosevec <- as.numeric(unif<(weights)/max(weights))
 
-		
+
 		if(keep.first==1){
 		ids <- names(table(data[,names(data)%in%id]))
 		idnum <- array(dim=nrow(data))
@@ -505,51 +441,37 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' @param data the original dataset on which multiple outputation is to be performed
 #' @param weights the weights to be used in the outputation, i.e. the inverse of the probability that ay given observation will be selected in creating an outputted dataset. Ignored if singleobse=TRUE
 #' @param singleobs logical variable indicating whether a single observation should be retained for each subject
-#' @param id character string indicating which column of the data identifies subjects  
+#' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param keep.first logical variable indicating whether the first observation should be retained with probability 1. This is useful if the data consists of an observation at baseline followed by follow-up at stochastic time points.
 #' @param var logical variable indicating whether fn returns variances in addition to point estimates
 #' @param ... other arguments to fn.
 #' @return a list containing the multiple outpution estimate of the function fn applied to the data, its standard error, and the relative efficiency of using noutput outputations as opposed to an infinite number
-#' @references 
+#' @references
 #' \itemize{
 #' \item Hoffman E, Sen P, Weinberg C. Within-cluster resampling. Biometrika 2001; 88:1121-1134
 #' \item Follmann D, Proschan M, Leifer E. Multiple outputation: inference for complex clustered data by averaging analyses from independent data. Biometrics 2003; 59:420-429
 #' \item Pullenayegum EM. Multiple outputation for the analysis of longitudinal data subject to irregular observation. Statistics in Medicine (in press)}.
 #' @family mo
 #' @examples
+#' library(nlme)
 #' data(Phenobarb)
-#' 
-#' Phenobarb$lastconc <- NA;
-#' Phenobarb$lastdose <- NA;
-#' Phenobarb$lasttime <- NA
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.na(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$lastconc[i-1]
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i] & is.finite(Phenobarb$conc[i-1])) Phenobarb$lastconc[i] <- Phenobarb$conc[i-1]
-#' }
-
-#' for(i in 2:nrow(Phenobarb)){
-#' 	if(Phenobarb$Subject[i-1]==Phenobarb$Subject[i]){
-#' 		Phenobarb$lasttime[i] <- Phenobarb$time[i-1]
-#' 		if(is.na(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$dose[i-1]
-#' 		}
-#' 		if(is.finite(Phenobarb$conc[i-1])){
-#' 			Phenobarb$lastdose[i] <- Phenobarb$lastdose[i-1]
-#' 		}
-#' 	}	
-#' }
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-#' i <- iiw.weights(Surv(time.lag,time,event)~I(1-is.na(lastconc)) + lastconcobs + cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb,invariant="Subject",lagvars=c("time","dose","Apgar"),maxfu=NULL,first=TRUE)
-#' Phenobarb$weight <- i$iiw.weight
-#' Phenobarb.concobs <- Phenobarb[Phenobarb$event==1,] 
+#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
+#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
+#' i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(Subject),
+#' id="id",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
+#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+#' Phenobarb.conc$weight <- i$iiw.weight
 #' reg <- function(data){
-#'  	return(data.matrix(summary(geeglm(conc ~ time*log(time) , id=Subject, data=data))$coefficients[,1:4]))
+#'  	return(data.matrix(summary(geeglm(conc ~ time*log(time) ,
+#'  	id=Subject, data=data))$coefficients[,1:2]))
 #'  }
-#' 
-#' mo(20,reg,Phenobarb.concobs,Phenobarb.concobs$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
-#' # does not yield valid variance estimates - once thinned the dataset contains fewer than 30 subjects for most outputations, so the sandwich variance estimate from the GEE is too small
-
+#'
+#' mo(20,reg,Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+#' # does not yield valid variance estimates
+#' # once thinned the dataset contains fewer than 30 subjects for most outputations,
+#' # so the sandwich variance estimate from the GEE is too small
 #' @export
 
 
@@ -576,125 +498,129 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 
 #' Fit a semi-parametric joint model
 #'
-#' Fits a semi-parametric joint model as described by Liang et al (2009). 
+#' Fits a semi-parametric joint model as described by Liang et al (2009).
 #'
 #' @details
 #' This function is designed to be used in conjunction with multiple outputation and hence assumes no fixed effects in the visit process model. The visit process model thus contains a baseline hazard and a random effect only.
-#' @param data data frame containing the variables in the model 
+#' @param data data frame containing the variables in the model
 #' @param Yname character string indicating the column containing the outcome variable
 #' @param Xnames vector of character strings indicating the names of the columns of the fixed effects in the outcome regression model
 #' @param Wnames vector of character strings indicating the names of the columns of the random effects in the outcome regression model
-#' @param id character string indicating which column of the data identifies subjects  
+#' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfh should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
 #' @param baseline An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.
 #' @return the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
-#' @references Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384. 
+#' @references Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.
 #' @export
 
 Liang <- function(data,Yname, Xnames, Wnames, id,time, maxfu,baseline ){
 
-	fn <- function(t,tvec) return(which.min(abs(t-tvec)))
+  fn <- function(t,tvec) return(which.min(abs(t-tvec)))
 
-	if(is.null(maxfu)){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
+  # redo id variable so ids are numbered using consecutive integers
+  ids <- names(table(data[,names(data)%in%id]))
+  idnum <- array(dim=nrow(data))
+  for(i in 1:nrow(data)) idnum[i] <- (1:length(ids))[data[i,names(data)%in%id]==ids]
+  if(is.data.frame(maxfu)){ maxfu.use <- maxfu; for(i in 1:nrow(maxfu)){ maxfu.use[i,names(maxfu)%in%id] <- (1:length(ids))[maxfu[i,names(maxfu)%in%id]==ids]}}
+  data[,names(data)%in%id] <- idnum
 
-	# redo id variable so ids are numbered using consecutive integers
-	ids <- names(table(data[,names(data)%in%id]))
-	idnum <- array(dim=nrow(data))
-	for(i in 1:nrow(data)) idnum[i] <- (1:length(ids))[data[i,names(data)%in%id]==ids]
-	if(is.data.frame(maxfu)){ for(i in 1:nrow(maxfu)){ maxfu[i,names(maxfu)%in%id] <- (1:length(ids))[maxfu[i,names(maxfu)%in%id]==ids]}}
-	data[,names(data)%in%id] <- idnum
-
-	if(identical(ids,as.vector(maxfu[order(maxfu[,1]),1]))==FALSE &identical(as.numeric(ids),as.vector(maxfu[order(maxfu[,1]),1]))==FALSE ) print("Error - ids in maxfu must match ids in 'data'")
+  if(is.null(maxfu)){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu.use <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
 
 
-	n <- length(table(data[,names(data)%in%id]))
-	mi <- tapply(data[,names(data)%in%Yname],data[,names(data)%in%id],length)-baseline
+  #	if(identical(ids,as.vector(maxfu[order(maxfu[,1]),1]))==FALSE &identical(as.numeric(ids),as.vector(maxfu[order(maxfu[,1]),1]))==FALSE ) print("Error - ids in maxfu must match ids in 'data'")
 
-	Xcols <- (1:ncol(data))[is.finite(match(names(data), Xnames))]
-	Wcols <- (1:ncol(data))[is.finite(match(names(data), Wnames))]
-	X <- array(data.matrix(data[,Xcols]),dim=c(nrow(data),length(Xnames)))
-	W <- array(data.matrix(data[,Wcols]),dim=c(nrow(data),length(Wnames)))
 
-	maxfu <- maxfu[order(maxfu[,1]),]
+  n <- length(table(data[,names(data)%in%id]))
+  mi <- tapply(data[,names(data)%in%Yname],data[,names(data)%in%id],length)-baseline
 
-	if(length(maxfu)==1){
-		Lambdahat <- nrow(data)/n	
-		sigmahatsq <- max((sum(mi^2)-sum(mi)-n*Lambdahat^2)/(n*Lambdahat^2),0)
-		Lambdahat <- rep(Lambdahat,n)
-		Ci <- rep(maxfu,n)
-	}
-	if(length(maxfu)>1){
-		ids <- as.numeric(names(table(data[,names(data)%in%id])))
-		Ci <- as.vector(maxfu[order(maxfu[,1]),2])
-		data$event <- 1
-	
-		lagcols <- (1:ncol(data))[is.finite(match(names(data), time))]
-		invarcols <- (1:ncol(data))[is.finite(match(names(data), id))]
+  Xcols <- (1:ncol(data))[is.finite(match(names(data), Xnames))]
+  Wcols <- (1:ncol(data))[is.finite(match(names(data), Wnames))]
+  X <- array(data.matrix(data[,Xcols]),dim=c(nrow(data),length(Xnames)))
+  W <- array(data.matrix(data[,Wcols]),dim=c(nrow(data),length(Wnames)))
 
-		datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event="event")	
-		datacox <- lagfn(datacox,"time",id,time)
-		
-		formulanull <- Surv(time.lag,time,event)~1
-		datacox <- datacox[datacox[,names(datacox)%in%time]>0,]
-		b <- basehaz(coxph(formulanull,data=datacox))
-		indexfn <- function(t,time){ return(sum(time<t))}
-		bindex <- sapply(Ci,indexfn,time=b$time)
-		bindex[bindex==0] <- 1
-		Lambdahat <- b$hazard[bindex]
-		sigmahatsq <- max((sum(mi^2)-sum(mi)-sum(Lambdahat^2))/sum(Lambdahat^2),0)
-	}
+  if(length(maxfu)==1) maxfu.use <- cbind(idnum,rep(maxfu,length(idnum)))
+  maxfu.use <- maxfu.use[order(maxfu.use[,1]),]
+  data <- data[order(idnum),]
 
-	mi.Lambdahat <- mi/Lambdahat
-	mi.Lambdahat[mi==0 & Lambdahat==0] <- 1
-	
-	Bhat <- array(dim=c(nrow(data),ncol(W)))
-	Bbar <- Bhat
-	Xbar <- array(dim=c(nrow(data),ncol(X)))
+  if(length(maxfu)==1){
+    Lambdahat <- nrow(data)/n
+    sigmahatsq <- max((sum(mi^2)-sum(mi)-n*Lambdahat^2)/(n*Lambdahat^2),0)
+    Lambdahat <- rep(Lambdahat,n)
+    Ci <- rep(maxfu,n)
+  }
+  if(length(maxfu)>1){
+    maxfu.use <- maxfu.use[order(maxfu[,1]),]
+    ids <- as.numeric(names(table(data[,names(data)%in%id])))
+    Ci <- as.vector(maxfu.use[order(maxfu.use[,1]),2])
+    data$event <- 1
 
-	Bmultiplier <- array(dim=nrow(data))
-	Bmultid <- (mi - Lambdahat)*sigmahatsq/(1+Lambdahat*sigmahatsq)
-	ids <- as.numeric(names(table(ids)))
-	for(i in 1:n) Bmultiplier[data[,names(data)%in%id]==ids[i]] <- Bmultid[i]
-	Bhat <- sweep(array(W,dim=c(nrow(data),ncol(W))),1,Bmultiplier,"*")
+    lagcols <- (1:ncol(data))[is.finite(match(names(data), time))]
+    invarcols <- (1:ncol(data))[is.finite(match(names(data), id))]
 
-  	Xbar <- array(dim = c(nrow(data),ncol(X)))
-	Bbar <- array(dim = c(nrow(data),ncol(W)))
+    datacox <- addcensoredrows(data=data,maxfu=maxfu.use,tinvarcols=invarcols,id=id,time=time,event="event")
+    datacox <- lagfn(datacox,"time",id,time)
 
-#	X0 <- array(apply(X,data[,names(data)%in%id],mean),dim=c(n,ncol(X))
-	
-#	for(row in 1:nrow(data)){
-#		t <- data[,names(data)%in%time][row]
-#		Xbar[row,] <- apply(sweep(X0,1,mi*as.numeric(Ci>=t)/Lambdahat,"*"),2,mean)/
-#	}
+    formulanull <- Surv(time.lag,time,event)~1
+    datacox <- datacox[datacox[,names(datacox)%in%time]>0,]
+    b <- basehaz(coxph(formulanull,data=datacox))
+    indexfn <- function(t,time){ return(sum(time<t))}
+    bindex <- sapply(Ci,indexfn,time=b$time)
+    bindex[bindex==0] <- 1
+    Lambdahat <- b$hazard[bindex]
+    sigmahatsq <- max((sum(mi^2)-sum(mi)-sum(Lambdahat^2))/sum(Lambdahat^2),0)
+  }
 
-	obsnum <- rep(1,nrow(data))
-	for(row in 2:nrow(data)){
-		if(identical(data[row,names(data)%in%id],data[row-1,names(data)%in%id])) obsnum[row] <- obsnum[row-1]+1
-	}
-	firstobs <- (1:nrow(data))[obsnum==1]
+  mi.Lambdahat <- mi/Lambdahat
+  mi.Lambdahat[mi==0 & Lambdahat==0] <- 1
 
-   	 for (row in 1:nrow(data)) {
-        	t <- data[,names(data)%in%time][row]
-#        	absdiff <- abs(data[,names(data)%in%time] - t)
-#        	min <- tapply(absdiff, data[,names(data)%in%id], min)
-#        	data.min <- min[data[,names(data)%in%id]]
-		closest <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],fn,t=data[,names(data)%in%time][row])
-		userow <- firstobs + closest-1
-        	Xbar[row,] <- apply(sweep(array(X[userow,],dim=c(n,length(Xnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
-		Bbar[row,] <- apply(sweep(array(Bhat[userow,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
-#        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min - 
-#            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff == 
-#            0]])
-    	}
+  Bhat <- array(dim=c(nrow(data),ncol(W)))
+  Bbar <- Bhat
+  Xbar <- array(dim=c(nrow(data),ncol(X)))
 
-	regX <- array((X - Xbar),dim=c(nrow(data),ncol(X)))[data[,names(data)%in%time]>0,]
-    	regB <- array(Bhat - Bbar,dim=c(nrow(data),ncol(W)))[data[,names(data)%in%time]>0,]
-	regY <- data[,names(data)%in%Yname][data[,names(data)%in%time]>0]
-	regpredictor <- cbind(regX,regB)
-	if(sigmahatsq>0) beta <- solve(t(regpredictor)%*%regpredictor,t(regpredictor)%*%regY)
-	if(sigmahatsq==0) beta <- solve(t(regX)%*%regX,t(regX)%*%regY)
-	return(beta[1:ncol(X)])
+  Bmultiplier <- array(dim=nrow(data))
+  Bmultid <- (mi - Lambdahat)*sigmahatsq/(1+Lambdahat*sigmahatsq)
+  ids <- as.numeric(names(table(ids)))
+  for(i in 1:n) Bmultiplier[data[,names(data)%in%id]==ids[i]] <- Bmultid[i]
+  Bhat <- sweep(array(W,dim=c(nrow(data),ncol(W))),1,Bmultiplier,"*")
+
+  Xbar <- array(dim = c(nrow(data),ncol(X)))
+  Bbar <- array(dim = c(nrow(data),ncol(W)))
+
+  #	X0 <- array(apply(X,data[,names(data)%in%id],mean),dim=c(n,ncol(X))
+
+  #	for(row in 1:nrow(data)){
+  #		t <- data[,names(data)%in%time][row]
+  #		Xbar[row,] <- apply(sweep(X0,1,mi*as.numeric(Ci>=t)/Lambdahat,"*"),2,mean)/
+  #	}
+
+  obsnum <- rep(1,nrow(data))
+  for(row in 2:nrow(data)){
+    if(identical(data[row,names(data)%in%id],data[row-1,names(data)%in%id])) obsnum[row] <- obsnum[row-1]+1
+  }
+  firstobs <- (1:nrow(data))[obsnum==1]
+
+  for (row in 1:nrow(data)) {
+    t <- data[,names(data)%in%time][row]
+    #        	absdiff <- abs(data[,names(data)%in%time] - t)
+    #        	min <- tapply(absdiff, data[,names(data)%in%id], min)
+    #        	data.min <- min[data[,names(data)%in%id]]
+    closest <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],fn,t=data[,names(data)%in%time][row])
+    userow <- firstobs + closest-1
+    Xbar[row,] <- apply(sweep(array(X[userow,],dim=c(n,length(Xnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+    Bbar[row,] <- apply(sweep(array(Bhat[userow,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+    #        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min -
+    #            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff ==
+    #            0]])
+  }
+
+  regX <- array((X - Xbar),dim=c(nrow(data),ncol(X)))[data[,names(data)%in%time]>0,]
+  regB <- array(Bhat - Bbar,dim=c(nrow(data),ncol(W)))[data[,names(data)%in%time]>0,]
+  regY <- data[,names(data)%in%Yname][data[,names(data)%in%time]>0]
+  regpredictor <- cbind(regX,regB)
+  if(sigmahatsq>0) beta <- solve(t(regpredictor)%*%regpredictor,t(regpredictor)%*%regY)
+  if(sigmahatsq==0) beta <- solve(t(regX)%*%regX,t(regX)%*%regY)
+  return(beta[1:ncol(X)])
 }
 
 

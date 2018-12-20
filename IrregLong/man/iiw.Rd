@@ -24,13 +24,17 @@ A vector of inverse-intensity weights for each row of the dataset. The first obs
 For a longitudinal dataset subject to irregular observation, use a Cox proportional hazards model for visit intensities to compute inverse intensity weights
 }
 \examples{
-data(datalong)
-datalong <- lagfn(datalong,c("time","value"),"id","time")
-mph <- coxph(Surv(time.lag,time,event)~ Group*as.numeric(value.lag>1) + cluster(id),
- data=datalong[datalong$time>0,])
+library(nlme)
+data(Phenobarb)
+Phenobarb$id <- as.numeric(Phenobarb$Subject)
+Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
+Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
+Phenobarb.conc <- lagfn(Phenobarb.conc,c("time","conc"),"id","time")
+
+mph <- coxph(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),data=Phenobarb.conc)
 summary(mph)
-datalong$weight <- iiw(mph,datalong,"id","time",TRUE)
-head(datalong)
+Phenobarb.conc$weight <- iiw(mph,Phenobarb.conc,"id","time",TRUE)
+head(Phenobarb)
 }
 \seealso{
 Other iiw: \code{\link{iiw.weights}}, \code{\link{iiwgee}}
