@@ -12,7 +12,7 @@ vignette: >
 
 ## Overview
 
-Longitudinal data often has follow-up times that are irregular and potentially related to outcomes. For example, in a clinic-based cohort study where all follow-up is part of usual care, patients may visit more often when unwell. This risks over-estimating the burden of disease unless data are analysed appropriately.
+Longitudinal data often has follow-up times that are irregular and potentially related to outcomes. For example, in a clinic-based cohort study where all follow-up is part of usual care, patients may visit more often when unwell. This risks over-estimating the burden of disease unless data are analysed appropriately. For example, in a study of HIV positive mothers, Buzkova et al @Buzkova found a two-fold over-estimation of the estimated prevelance of pneumonia when analysis ignored the fact that women were more likely to visit between scheduled visits when they were unwell
 
 There are two categories of methods available for analysing this type of data: methods based on inverse-intensity weighting, and methods based on semi-parametric joint models (see @Pullenayegum2015 for an overview). This package provides methods for inverse-intensity weighting. 
 
@@ -22,17 +22,30 @@ Sometimes inference may be desired for a model for which weighting is not straig
 
 Multple outputation works by discarding (outputting) excess data [@Hoffman2001; @Follmann2003]. Visits are randomly deleted from the dataset with probability inversely proportional to the visit intensity [@Pullenayegum2016]. The resulting thinned visit process is independent of the outcome process (subject to the assumptions below), and can hence be analysed using standard methods. To avoid wasting data, the random deletion is repeated multiple times and the results from each analysis combined. Conceptually, multiple outputation is the opposite of multiple imputation: where multiple imputation imputes missing observations multiple times, multiple outputation discards excess observations multiple times. This package contains functions to create outputted datasets, as well as to combine results across multiple outputations.
 
-## Assumptions
-Inverse-intensity methods, whether implemented through weighting or multiple outputation, are subject to the following assumptions.
+## Review of Inverse-intensity weighted GEEs
+Suppose $Y_i(t)$ is the outcome of interest for subject $i$ at time $t$, let $X_i(t)$ be a possibly time-dependent covariate, and suppose interest is in the marginal model \[E(Y_i(t)|X_i(t))=X_i(t)\beta.\] Moreover, suppose that we observe $Y_i$ only at times $T_{i1},T_{i2},\ldots, T_{in_i}$. Let $N_i(t)$ be the counting process for the visit times, that is $N_i(t)=\sum_{j}I(T_{ij}\leq t)$, where $I()$ is an indicator function. Suppose moreover that there is a vector of observed covariates $Z_i(t)$ such that \[\lim_{\delta \downarrow 0} \frac{E(N(t)-N(t-\delta))|Y_i(t),Z_i(t))}{\delta}=\frac{E(N(t)-N(t-\delta))|Z_i(t))}{\delta}=\lambda(t;Z_i(t))\] for some hazard function $\lambda$. If this assumption is not met, altnerative methods of analysis should be considered (e.g. semi-parametric joint models).
 
-Suppose $Y_i(t)$ is the outcome of interest for subject $i$ at time $t$, let $X_i(t)$ be a possibly time-dependent covariate, and suppose interest is in the marginal model \[E(Y_i(t)|X_i(t))=X_i(t)\beta.\] Moreover, suppose that we observe $Y_i$ only at times $T_{i1},T_{i2},\ldots, T_{in_i}$. Let $N_i(t)$ be the counting process for the visit times, that is $N_i(t)=\sum_{j}I(T_{ij}\leq t)$, where $I()$ is an indicator function. Inverse-intensity weighting methods hinge on there being a vector of observed covariates $Z_i(t)$ such that \[\lim_{\delta \downarrow 0} \frac{E(N(t)-N(t-\delta))|Y_i(t),Z_i(t))}{\delta}=\frac{E(N(t)-N(t-\delta))|Z_i(t))}{\delta}=\lambda(t;Z_i(t))\] for some hazard function $\lambda$. If this assumption is not met, altnerative methods of analysis should be considered (e.g. semi-parametric joint models).
+The usual GEE equations will result in biased estimates of $\beta$ since
+\[E(\sum_i\int_0^\tau X_i^\prime (Y_i(t) - X_i(t)\beta)dN_i(t)) =E(\sum_i\int_0^\tau X_i^\prime E((Y_i(t) - X_i(t)\beta)dN_i(t)\mid X_i(t)) \neq 0  \]
+Provided that the conditional independence assumption holds, consistent estimates of $\beta$ may be obtained by weighting the GEE equations by $sw_i(t)=s_0(t)/\lambda_i(t)$
+\[E(\sum_i\int_0^\tau X_i^\prime sw_i(t)(Y_i(t) - X_i(t)\beta)dN_i(t)) =E(\sum_i\int_0^\tau X_i^\prime E(sw_i(t)(Y_i(t) - X_i(t)\beta)dN_i(t)\mid X_i(t),Y_i(t)) = E(\sum_i\int_0^\tau X_i^\prime sw_i(t)(Y_i(t) - X_i(t)\beta)\lambda_i(t)dt=0.  \]
 
-## Inverse-Intensity weighting
+## Implementing Inverse-Intensity weighting
 
 The first step in inverse-intensity weighting is to calculate the weights, usually by fitting a proportional hazards model to the recurrent event process formed by the visit times. That is, one fits the model 
 \[\lambda(t;Z_i(t))=\lambda_0(t)\exp(Z_i(t)\gamma).\]
-The inverse-intensity weight is then $w_i(t) = \frac{\exp(-Z_i(t)\gamma)}{\lambda_0(t)}$. Following
+This can be done using the coxph function, however the data usually requires some pre-processing. Firstly, the counting process formulation takes the form Surv(start.time,stop.time,event) and so typically requires the time variable to be lagged. Time-varying covariates will often need to be lagged as well. Secondly, if follow-up was stopped at a time later than the last visit, then additional rows capturin g the censoring time must be added to the dataset. For example, if follow-up is stopped after two years, and an individual's last visit is at 1.5 years, then we must include the information that there was no visit between 1.5 years and two years when estimating the visit invensity model. Using the data on just the observed visits ignores this.
+
+The IrregLong package simplifies modelling of the visit process by creating a dataset with lagged variables (specified using lagvars=) and time intervals corresponding to censoring times (specified using maxfu=).
+
+The inverse-intensity weight is $w_i(t) = \frac{\exp(-Z_i(t)\gamma)}{\lambda_0(t)}$. Following
 @BuzkovaCJS2007, all inverse-intensity weights in this package are stabilized by the baseline hazard $\lambda_0(t)$, so that the stabilized weight is $sw_i(t)=\exp(-Z_i(t)\gamma)$. In some settings one may additionally wish to stabilize by a function of the time-invariant covariates in $X_i(t)$, and an option to do so is included in the functions. One can then fit a GEE to obtain the regression coefficients $\beta$ corresponding to regressing $Y_i(t)$ on $X_i(t)$, weighting by $sw_i(t)$. 
+
+An important practical point is that when using inverse-intensity weighting the working variance for the GEE must be set to the identity. This is because functions for fitting GEEs interpret the weights as indicating heteroscedasticity. Thus is $Y_i$ is the vector of observations for subject $i$, $X_i$ is the matrix of corresponding covariates, $R_i$ is the working variance matrix and $D_i$ is a diagnomal matrix whose $jj$ entry os the weight for the $j^{th}$ observation for subject $i$, then standard GEE software solves
+\[\sum_iX_i^\prime D_i^{1/2}R_i^{-1}D_i^{1/2}(Y_i-X_i\beta)=0,\]
+whereas we wish to solve
+\[\sum_iX_i^\prime R_i^{-1}D_i(Y_i-X_i\beta)=0.\]
+The two are, however, identical if $R_i$ is the identity matrix. While at first glance it may seem appealing to create a GEE estimation function that implements the weights as desired so as to allow for non-diagonal working variance matrices, note that the working variance should then be the variance of $D_i(Y_i-X_i\beta)$ rather than $(Y_i-X_i\beta)$. Since the weights usually involve time-dependent covariates that are often internal, the standard correlation structures (exchangeable, autoregressive) become less plausible.
 
 ### Example
 These methods are illustrated using the Phenobarb dataset from the MEMSS package. Routine clinical pharmacokinetic data were collected from 59 preterm infants who received phenobarbital in order to prevent suizures. Blood draws were taken to determine serum concentration of phenobarbital, with the timing and number of draws varying among infants. For the purposes of illustration this analysis foucses not on pharmacokinetics but on the mean serum concentration of phenobarbital over time.
@@ -161,7 +174,7 @@ Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
 Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
 i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + 
       cluster(id),id="id",time="time",event="event",data=Phenobarb.conc,
-      invariant="id",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=FALSE,frailty=TRUE)
+      invariant="id",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=FALSE,frailty=FALSE)
 reg <- function(data){
   est <- geeglm(conc~I(time^3) + log(time), id=id,data=data)$coefficients
   est <- cbind(est,GEE.var.md(conc~I(time^3) + log(time), id=id,data=data)$cov.beta)
@@ -199,8 +212,8 @@ Phenobarb$id <- as.numeric(Phenobarb$Subject)
 Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
 Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
 i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + 
-        cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb.conc,
-        invariant="Subject",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE,
+        cluster(id),id="id",time="time",event="event",data=Phenobarb.conc,
+        invariant="id",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=FALSE,
         frailty=TRUE)
 summary(i$iiw.weight)
 sum(i$iiw.weight>15)
