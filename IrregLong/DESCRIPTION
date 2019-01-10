@@ -12,9 +12,11 @@ Description: This package contains functions to analyse longitudinal data
 Depends:
     survival, geepack, frailtypack, R (>= 2.10)
 License: GPL-3
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 Suggests: knitr,
     rmarkdown,
-    nlme
+    nlme,
+    MEMSS,
+    geesmv
 VignetteBuilder: knitr
 LazyData: true
