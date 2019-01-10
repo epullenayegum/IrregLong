@@ -91,7 +91,7 @@ addcensoredrows <- function(data,maxfu,tinvarcols,id,time,event){
 
 	range <- array(dim=length(tinvarcols))
 	for(col in 1:length(range)) range[col] <- min(tapply(data[,tinvarcols[col]],data[,names(data)%in%id],max)-tapply(data[,tinvarcols[col]],data[,names(data)%in%id],min))
-	if(max(range)>0){print("Those columns are not time invariant"); break}
+	if(max(range)>0){print("Those columns are not time invariant")}
 
 	extrarows <- array(dim=c(length(table(data[,names(data)%in%id])),ncol(data)))
 
@@ -230,6 +230,8 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 
 	# fit IIW-GEE
 	data$iddup <- data[,names(data)%in%id]
+	useweight <- data$useweight
+	iddup <- data$iddup
 	mgee <- geeglm(formulagee,id=iddup,data=data,corstr="independence",weights=useweight,family=family)
 	return(list(geefit=mgee,phfit=m))
 }
@@ -288,8 +290,6 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 
 	stabilize <- !is.null(formulanull)
 
-	if(!is.null(maxfu)){if(is.data.frame(maxfu)){if(nrow(maxfu)<length(table(data[,names(data)%in%id]))){print("Need one censoring time for each individual"); break}}}  #######fix this line
-
 	# redo id variable so ids are numbered using consecutive integers
 	ids <- names(table(data[,names(data)%in%id]))
 	idnum <- array(dim=nrow(data))
@@ -305,7 +305,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 	datacox <- lagfn(datacox,lagvars,id,time,lagfirst)
 	if(!frailty){
 	m <- coxph(formula=formulaph,data=datacox)
-	data$iiw.weight <- iiw(m,lagfn(data,lagvars,id,time),id,time,first)
+	data$iiw.weight <- iiw(m,lagfn(data,lagvars,id,time,lagfirst),id,time,first)
 	if(stabilize){
 		m0 <- coxph(formula=formulanull,data=datacox)
 		data$nullweight <- iiw(m0,data,id,time,first)
@@ -313,8 +313,9 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 	} else{ data$useweight <- data$iiw.weight}
 	}
 	if(frailty){
-		use <- (1:nrow(datacox))[!is.na(datacox[,names(datacox)%in%paste(time,".lag",sep="")])]
-		m <- frailtyPenal(formula=formulaph,data=datacox[use,], recurrentAG=TRUE, n.knots=6, kappa=10000,cross.validation=TRUE)
+    row.names(datacox)[datacox$event==1] <- row.names(data)
+	  use <- (1:nrow(datacox))[!is.na(datacox[,names(datacox)%in%paste(time,".lag",sep="")])]
+	  		m <- frailtyPenal(formula=formulaph,data=datacox[use,], recurrentAG=TRUE, n.knots=6, kappa=10000,cross.validation=TRUE)
 
 		omit <- c("(Intercept)",paste("cluster(",id,")",sep=""))
 
