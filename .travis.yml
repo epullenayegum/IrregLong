@@ -1,0 +1,8 @@
+language: r
+warnings_are_errors: true
+sudo: required
+install:
+  - ./travis-tool.sh install_r survival
+  - ./travis-tool.sh install_r geepack
+  - ./travis-tool.sh install_r frailtypack
+  
