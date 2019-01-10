@@ -5,7 +5,4 @@ sudo: false
 
 before_install:
   - cd IrregLong
-install:
-  - ./travis-tool.sh install_r <survival>
-  - ./travis-tool.sh install_r <geepack>
-  - ./travis-tool.sh install_r <frailtypack>
+
