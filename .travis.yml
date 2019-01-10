@@ -1,8 +1,13 @@
-language: r
-warnings_are_errors: true
-sudo: required
+# R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
+
+language: R
+sudo: false
+
+before_install:
+  - curl -OL http://raw.github.com/craigcitro/r-travis/master/scripts/travis-tool.sh
+  - chmod 755 ./travis-tool.sh
+  - ./travis-tool.sh bootstrap
 install:
-  - ./travis-tool.sh install_r survival
-  - ./travis-tool.sh install_r geepack
-  - ./travis-tool.sh install_r frailtypack
-  
+  - ./travis-tool.sh install_r <survival>
+  - ./travis-tool.sh install_r <geepack>
+  - ./travis-tool.sh install_r <frailtypack>
