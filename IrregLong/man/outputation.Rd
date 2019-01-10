@@ -56,3 +56,4 @@ head(data.output3)
 \seealso{
 Other mo: \code{\link{mo}}
 }
+\concept{mo}
