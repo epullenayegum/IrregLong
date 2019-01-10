@@ -39,3 +39,4 @@ head(Phenobarb)
 \seealso{
 Other iiw: \code{\link{iiw.weights}}, \code{\link{iiwgee}}
 }
+\concept{iiw}
