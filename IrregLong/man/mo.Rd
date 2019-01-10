@@ -4,8 +4,8 @@
 \alias{mo}
 \title{Multiple outputation for longitudinal data subject to irregular observation.}
 \usage{
-mo(noutput, fn, data, weights, singleobs, id, time, keep.first, var = TRUE,
-  ...)
+mo(noutput, fn, data, weights, singleobs, id, time, keep.first,
+  var = TRUE, ...)
 }
 \arguments{
 \item{noutput}{the number of outputations to be used}
@@ -45,13 +45,13 @@ id="id",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
 lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
 Phenobarb.conc$weight <- i$iiw.weight
 reg <- function(data){
- 	return(data.matrix(summary(geeglm(conc ~ time*log(time) , 
+ 	return(data.matrix(summary(geeglm(conc ~ time*log(time) ,
  	id=Subject, data=data))$coefficients[,1:2]))
  }
 
 mo(20,reg,Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
 # does not yield valid variance estimates
-# once thinned the dataset contains fewer than 30 subjects for most outputations, 
+# once thinned the dataset contains fewer than 30 subjects for most outputations,
 # so the sandwich variance estimate from the GEE is too small
 }
 \references{
@@ -63,3 +63,4 @@ mo(20,reg,Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,id="id",time="tim
 \seealso{
 Other mo: \code{\link{outputation}}
 }
+\concept{mo}
