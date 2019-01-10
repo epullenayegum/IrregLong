@@ -1,12 +1,6 @@
-# R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
-
 language: R
 sudo: false
 
 before_install:
   - cd IrregLong
 
-install:
-  - ./travis-tool.sh install_r <survival>
-  - ./travis-tool.sh install_r <geepack>
-  - ./travis-tool.sh install_r <frailtypack>
