@@ -10,7 +10,7 @@ Description: This package contains functions to analyse longitudinal data
     associated with the outcome process. The package includes inverse-intensity
     weighting and multiple outputation methods.
 Depends:
-    survival, geepack, frailtypack, R (>= 3.5.2)
+    survival, geepack, frailtypack, R (>= 2.10)
 License: GPL-3
 RoxygenNote: 6.1.1
 Suggests: knitr,
