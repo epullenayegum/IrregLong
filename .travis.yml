@@ -3,6 +3,10 @@
 language: R
 sudo: false
 
+os:
+  - linux
+  - osx
+
 before_install:
   - cd IrregLong
 
