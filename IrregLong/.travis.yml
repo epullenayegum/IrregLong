@@ -1,6 +1,0 @@
-language: R
-sudo: false
-
-before_install:
-  - cd IrregLong
-
