@@ -143,6 +143,8 @@ phfn <- function(datacox,regcols,data){
 #' @examples
 #' library(nlme)
 #' data(Phenobarb)
+#' library(survival)
+#' library(geepack)
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
 #' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
 #' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
@@ -193,6 +195,8 @@ iiw <- function(phfit,data,id,time,first){
 #' @examples
 #' library(nlme)
 #' data(Phenobarb)
+#' library(survival)
+#' library(geepack)
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
 #' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
 #' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
@@ -261,6 +265,8 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' @examples
 #' library(nlme)
 #' data(Phenobarb)
+#' library(survival)
+#' library(geepack)
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
 #' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
 #' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
@@ -364,6 +370,8 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' @examples
 #' library(nlme)
 #' data(Phenobarb)
+#' library(survival)
+#' library(geepack)
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
 #' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
 #' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
@@ -457,6 +465,8 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' @examples
 #' library(nlme)
 #' data(Phenobarb)
+#' library(survival)
+#' library(geepack)
 #' Phenobarb$id <- as.numeric(Phenobarb$Subject)
 #' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
 #' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
