@@ -5,15 +5,15 @@ Version: 0.1.0
 Date: 2019-01-16
 Author: Eleanor Pullenayegum
 Maintainer: Eleanor Pullenayegum <eleanor.pullenayegum@sickkids.ca>
-Description: Analysis of longitudinal data for which the times of observation are random variables that are potentially associated with the outcome process. The package includes inverse-intensity weighting and multiple outputation methods.
-Depends:
-    survival, geepack, frailtypack, R (>= 2.10)
+Description: Analysis of longitudinal data for which the times of observation are random variables that are potentially associated with the outcome process. The package includes inverse-intensity weighting (Lin H, Scharfstein DO, Rosenheck RA (2004) <doi: 10.1111/j.1467-9868.2004.b5543.x>) and multiple outputation (Pullenayegum EM (2016) <doi: 10.1002/sim.6829>) methods.
+Depends: R (>= 2.10)
+Imports: survival, geepack, frailtypack 
 License: GPL-3
 RoxygenNote: 6.1.1
 Suggests: knitr,
     rmarkdown,
     nlme,
-    MEMSS,
-    geesmv
+    MEMSS
 VignetteBuilder: knitr
 LazyData: true
+Language: en-GB
