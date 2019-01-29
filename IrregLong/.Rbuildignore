@@ -1,6 +1,7 @@
+^cran-comments\.md$
 ^\.travis\.yml$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 .travis\.yml$
 IrregLong.Rproj
-cran-comments.Rmd
+cran_comments.md
