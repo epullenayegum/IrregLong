@@ -57,7 +57,7 @@ lagfn <- function(data,lagvars,id,time,lagfirst=NA){
 #' Add rows corresponding to censoring times to a longitudinal dataset
 #'
 #' @param data The dataset to which rows are to be added. The data should have one row per observation
-#' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfh should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
+#' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
 #' @param tinvarcols A vector of column numbers corresponding to variables in data that are time-invariant.
 #' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
@@ -349,7 +349,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' Multiple outputation is a procedure whereby excess observations are repeatedly randomly sampled and discarded. The method was originally developed to handle clustered data where cluster size is informative, for example when studying pups in a litter. In this case, analysis that ignores cluster size results in larger litters being over-represented in a marginal analysis. Multiple outputation circumvents this problem by randomly selecting one observation per cluster. Multiple outputation has been further adapted to handle longitudinal data subject to irregular observation; here the probability of being retained on any given outputation is inversely proportional to the visit intensity. This function creates a single outputted dataset.
 
 #' @param data the original dataset on which multiple outputation is to be performed
-#' @param weights the weights to be used in the outputation, i.e. the inverse of the probability that ay given observation will be selected in creating an outputted dataset. Ignored if singleobse=TRUE
+#' @param weights the weights to be used in the outputation, i.e. the inverse of the probability that a given observation will be selected in creating an outputted dataset. Ignored if singleobs=TRUE
 #' @param singleobs logical variable indicating whether a single observation should be retained for each subject
 #' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
@@ -440,14 +440,14 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' @param noutput the number of outputations to be used
 #' @param fn the function to be applied to the outputted datasets. fn should return a vector or scalar; if var=TRUE the second column of fn should be an estimate of standard error.
 #' @param data the original dataset on which multiple outputation is to be performed
-#' @param weights the weights to be used in the outputation, i.e. the inverse of the probability that ay given observation will be selected in creating an outputted dataset. Ignored if singleobse=TRUE
+#' @param weights the weights to be used in the outputation, i.e. the inverse of the probability that a given observation will be selected in creating an outputted dataset. Ignored if singleobs=TRUE
 #' @param singleobs logical variable indicating whether a single observation should be retained for each subject
 #' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param keep.first logical variable indicating whether the first observation should be retained with probability 1. This is useful if the data consists of an observation at baseline followed by follow-up at stochastic time points.
 #' @param var logical variable indicating whether fn returns variances in addition to point estimates
 #' @param ... other arguments to fn.
-#' @return a list containing the multiple outpution estimate of the function fn applied to the data, its standard error, and the relative efficiency of using noutput outputations as opposed to an infinite number
+#' @return a list containing the multiple outputation estimate of the function fn applied to the data, its standard error, and the relative efficiency of using noutput outputations as opposed to an infinite number
 #' @references
 #' \itemize{
 #' \item Hoffman E, Sen P, Weinberg C. Within-cluster resampling. Biometrika 2001; 88:1121-1134
@@ -499,7 +499,7 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 
 #' Fit a semi-parametric joint model
 #'
-#' Fits a semi-parametric joint model as described by Liang et al (2009).
+#' Fits a semi-parametric joint model as described by Liang et al. (2009).
 #'
 #' @details
 #' This function is designed to be used in conjunction with multiple outputation and hence assumes no fixed effects in the visit process model. The visit process model thus contains a baseline hazard and a random effect only.
@@ -509,7 +509,7 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #' @param Wnames vector of character strings indicating the names of the columns of the random effects in the outcome regression model
 #' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
-#' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfh should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
+#' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
 #' @param baseline An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.
 #' @return the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
 #' @references Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.

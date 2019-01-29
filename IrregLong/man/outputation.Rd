@@ -9,7 +9,7 @@ outputation(data, weights, singleobs, id, time, keep.first)
 \arguments{
 \item{data}{the original dataset on which multiple outputation is to be performed}
 
-\item{weights}{the weights to be used in the outputation, i.e. the inverse of the probability that ay given observation will be selected in creating an outputted dataset. Ignored if singleobse=TRUE}
+\item{weights}{the weights to be used in the outputation, i.e. the inverse of the probability that a given observation will be selected in creating an outputted dataset. Ignored if singleobs=TRUE}
 
 \item{singleobs}{logical variable indicating whether a single observation should be retained for each subject}
 

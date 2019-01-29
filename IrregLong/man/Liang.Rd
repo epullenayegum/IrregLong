@@ -19,7 +19,7 @@ Liang(data, Yname, Xnames, Wnames, id, time, maxfu, baseline)
 
 \item{time}{character string indicating which column of the data contains the time at which the visit occurred}
 
-\item{maxfu}{The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfh should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.}
+\item{maxfu}{The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.}
 
 \item{baseline}{An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.}
 }
@@ -27,7 +27,7 @@ Liang(data, Yname, Xnames, Wnames, id, time, maxfu, baseline)
 the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
 }
 \description{
-Fits a semi-parametric joint model as described by Liang et al (2009).
+Fits a semi-parametric joint model as described by Liang et al. (2009).
 }
 \details{
 This function is designed to be used in conjunction with multiple outputation and hence assumes no fixed effects in the visit process model. The visit process model thus contains a baseline hazard and a random effect only.

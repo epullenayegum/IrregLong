@@ -9,7 +9,7 @@ addcensoredrows(data, maxfu, tinvarcols, id, time, event)
 \arguments{
 \item{data}{The dataset to which rows are to be added. The data should have one row per observation}
 
-\item{maxfu}{The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfh should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.}
+\item{maxfu}{The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.}
 
 \item{tinvarcols}{A vector of column numbers corresponding to variables in data that are time-invariant.}
 

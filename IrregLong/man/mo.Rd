@@ -14,7 +14,7 @@ mo(noutput, fn, data, weights, singleobs, id, time, keep.first,
 
 \item{data}{the original dataset on which multiple outputation is to be performed}
 
-\item{weights}{the weights to be used in the outputation, i.e. the inverse of the probability that ay given observation will be selected in creating an outputted dataset. Ignored if singleobse=TRUE}
+\item{weights}{the weights to be used in the outputation, i.e. the inverse of the probability that a given observation will be selected in creating an outputted dataset. Ignored if singleobs=TRUE}
 
 \item{singleobs}{logical variable indicating whether a single observation should be retained for each subject}
 
@@ -29,7 +29,7 @@ mo(noutput, fn, data, weights, singleobs, id, time, keep.first,
 \item{...}{other arguments to fn.}
 }
 \value{
-a list containing the multiple outpution estimate of the function fn applied to the data, its standard error, and the relative efficiency of using noutput outputations as opposed to an infinite number
+a list containing the multiple outputation estimate of the function fn applied to the data, its standard error, and the relative efficiency of using noutput outputations as opposed to an infinite number
 }
 \description{
 Multiple outputation is a procedure whereby excess observations are repeatedly randomly sampled and discarded. The method was originally developed to handle clustered data where cluster size is informative, for example when studying pups in a litter. In this case, analysis that ignores cluster size results in larger litters being over-represented in a marginal analysis. Multiple outputation circumvents this problem by randomly selecting one observation per cluster. Multiple outputation has been further adapted to handle longitudinal data subject to irregular observation; here the probability of being retained on any given outputation is inversely proportional to the visit intensity. This function creates multiply outputted datasets, analyses each separately, and combines the results to produce a single estimate.
