@@ -49,6 +49,8 @@ Warning: Due to the way some gee functions incorporate weights, if using inverse
 \examples{
 library(nlme)
 data(Phenobarb)
+library(survival)
+library(geepack)
 Phenobarb$id <- as.numeric(Phenobarb$Subject)
 Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
 Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
