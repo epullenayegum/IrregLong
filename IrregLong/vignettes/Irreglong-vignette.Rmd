@@ -50,7 +50,7 @@ The two are, however, identical if $R_i$ is the identity matrix. While at first 
 ### Example
 These methods are illustrated using the Phenobarb dataset from the MEMSS package. Routine clinical pharmacokinetic data were collected from 59 preterm infants who received phenobarbital in order to prevent seizures. Blood draws were taken to determine serum concentration of phenobarbital, with the timing and number of draws varying among infants. For the purposes of illustration this analysis focuses not on pharmacokinetics but on the mean serum concentration of phenobarbital over time.
 
-This dataset contains some rows corresponding to times at which phenobarbital given and others at which a blood draw was taken to determine serum phenobarbital concentration. Analysis shows that once previous serum concentration is accounted for, dose is uninformative about the timing of blood draws, and hence we remove rows at which concentration was not measured. Moreover, the IrregLong package requires the variable identifying subjects to be numeric rather than a factors, so we create a new numeric id variable. Finally, since all rows now correspond to events, we set the event indicator to be 1 throughout the whole dataset.
+This dataset contains some rows corresponding to times at which phenobarbital given and others at which a blood draw was taken to determine serum phenobarbital concentration. For the visit intensity model, the event of interest is having a concentration measured, so we set the variable event=1 if concentration was measured and zero otherwise. It is plausible that the dose of Phenobarbital at the last administration, as well as the concentration at the last measurement, are informative about the time of the next concentration measurement, and so we create lagged versions of these variables. Ordinarily, this can be done within the iiwgee function. However, since in this dataset dose is recorded only when a new dose is given, and some infants had multiple concetration measurements without a new dose, the lagged dose variable needs to be created before running iiwgee. The dose varialble is carried forward until a new ose is observed, through multiple calls to lagfn. The data is then restricted to those time points when a concentration measurement was taken. The original pharmacokinetic analysis restricts attention to the first 16 days of life, which we also do here. Finally, the IrregLong package requires the variable identifying subjects to be numeric rather than a factor, so we create a new numeric id variable. 
 
 
 ```{r,results='hide',message=FALSE, warning=FALSE}
@@ -63,76 +63,95 @@ library(frailtypack)
 
 ```{r}
 data(Phenobarb)
-Phenobarb$id <- as.numeric(Phenobarb$Subject)
-Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-head(Phenobarb.conc)
+Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
+data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
+data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
+data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
+data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+data <- data[data$event==1,]
+data$id <- as.numeric(data$Subject)
+data <- data[data$time<16*24,]
+head(data)
 ```
 
 To fit an inverse intensity weighted GEE, one begins by modelling the visit intensity. Although the IrregLong package includes a function that calculates both the inverse-intensity weights and the weighted GEE in a single command, it can be helpful to start by focussing on the visit intensity model. Modelling is usually done through a Cox proportional hazards model on the recurrent visit process. To do this, we need to specify time periods at risk, and so need to lag the time variable. If there are time-dependent covariates and we suspect that the value at the last measurement is predictive of when the next measurement will be taken, these time-dependent covariates must also be lagged. The IrregLong package simplifies this process by allowing the user to specify which covariates should be lagged (lagvars=c("time","conc")) and creating these lagged covariates internally (time.lag,conc.lag). The value of the lagged variables will by default be missing for the first observation in each subject, but this can be changed through the lagfirst argument. We set the lagged  value of time at the first observed blood draw to be zero (lagfirst=0) since observation started at birth for all infants. Similarly, we set the lagged value of serum phenobarbital concentration to be zero at the first draw, since the last known value of serum concentration was at birth, prior to administration of phenobarbital. However, since it is reasonable to expect that the effect of last known concentration on the time to the next blood draw may differ between the first and subsequent draws, we include a separate effect for whether the last known concentration was positive (equivalent to whether this is the first blood draw). 
 
 ```{r}
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + Apgar + I(conc.lag>0) + conc.lag +
-      cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb.conc,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=FALSE)
+i <- iiw.weights(Surv(time.lag,time,event)~Wt + Apgar + I(conc.lag>0) + conc.lag + dose.lag +
+      cluster(Subject),id="Subject",time="time",event="event",data=data,
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
 i$m
 ```
 
-Since birth weight and Apgar score are not significant, we consider whether the model can be simplified - first by including Apgar score as an indicator ($\geq 5$ vs. $<5$), then by removing variables that are not significant.
+Since Apgar score is not significant, we consider whether the model can be simplified - first by including Apgar score as an indicator ($\geq 5$ vs. $<5$), then by removing variables that are not significant. We then consider whether interaction terms are needed.
 ```{r}
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + ApgarInd + I(conc.lag>0) + conc.lag + 
-      cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb.conc,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=FALSE)
+i <- iiw.weights(Surv(time.lag,time,event)~Wt + ApgarInd + I(conc.lag>0) + conc.lag + dose.lag +
+      cluster(Subject),id="Subject",time="time",event="event",data=data,
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
 i$m
-i <- iiw.weights(Surv(time.lag,time,event)~ApgarInd + I(conc.lag>0) + conc.lag + 
-      cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb.conc,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=FALSE)
+i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + dose.lag +
+      cluster(Subject),id="Subject",time="time",event="event",data=data,
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
 i$m
-i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + 
-      cluster(Subject),id="Subject",time="time",event="event",data=Phenobarb.conc,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=FALSE)
+i <- iiw.weights(Surv(time.lag,time,event)~Wt *( I(conc.lag>0) + conc.lag) + dose.lag +
+      cluster(Subject),id="Subject",time="time",event="event",data=data,
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+i$m
+i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + I(conc.lag>0) + conc.lag +
+      cluster(Subject),id="Subject",time="time",event="event",data=data,
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+i$m
+i <- iiw.weights(Surv(time.lag,time,event)~Wt *(dose.lag + I(conc.lag>0)) + conc.lag +
+      cluster(Subject),id="Subject",time="time",event="event",data=data,
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+i$m
+i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + dose.lag*(I(conc.lag>0) + conc.lag) +
+      cluster(Subject),id="Subject",time="time",event="event",data=data,
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
 i$m
 ```
-It thus appears that after accounting for the concentration at the last draw, the other covariates are not important predictors of visit intensity.
+It thus appears that last dose, birthweight, last concentration, and the interactions between last dose and birthweight and last dose and concentration are predictive of the time to the next concentration measurement.
 
-Having established a model for the weights, we now turn to modelling the serum concentration as a function of time. A plot of concentration over time shows that the relationship is unlikely to be linear, even in the weighted data. We thus use fractional polynomials to model the shape of the association over time.
+Having established a model for the visit intensity, we now turn to modelling the serum concentration as a function of time. A plot of concentration over time shows that the relationship is unlikely to be linear, even in the weighted data. We thus use fractional polynomials to model the shape of the association over time.
 ```{r fig3, fig.height=6, fig.width=6, fig.align="center"}
-plot(Phenobarb$time,Phenobarb$conc,xlim=c(0,200),pch=16)
+plot(data$time,data$conc,xlim=c(0,200),pch=16)
 ```
 
 Fractional polynomials consider powers of -2, -1, -0.5, 0.5, 1, 2, 3, and a log-transform, and use the best-fitting from among these. Since weighting tends not to lead to dramatic changes in the \textit{shape} of the relationship between outcome and covariates, we use the unweighted data to choose the functional form of time, and use the adjusted R-squared as a measure of goodness of fit.
 ```{r}
 rsq1 <- array(dim=8)
-rsq1[1] <- summary(lm(conc~time,data=Phenobarb.conc))$adj.r.squared
-rsq1[2] <- summary(lm(conc~I((time)^0.5),data=Phenobarb.conc))$adj.r.squared
-rsq1[3] <- summary(lm(conc~I((time)^2),data=Phenobarb.conc))$adj.r.squared
-rsq1[4] <- summary(lm(conc~I((time)^3),data=Phenobarb.conc))$adj.r.squared
-rsq1[5] <- summary(lm(conc~log(time),data=Phenobarb.conc))$adj.r.squared
-rsq1[6] <- summary(lm(conc~I((time)^(-0.5)),data=Phenobarb.conc))$adj.r.squared
-rsq1[7] <- summary(lm(conc~I((time)^(-1)),data=Phenobarb.conc))$adj.r.squared
-rsq1[8] <- summary(lm(conc~I((time)^(-2)),data=Phenobarb.conc))$adj.r.squared
+rsq1[1] <- summary(lm(conc~time,data=data))$adj.r.squared
+rsq1[2] <- summary(lm(conc~I((time)^0.5),data=data))$adj.r.squared
+rsq1[3] <- summary(lm(conc~I((time)^2),data=data))$adj.r.squared
+rsq1[4] <- summary(lm(conc~I((time)^3),data=data))$adj.r.squared
+rsq1[5] <- summary(lm(conc~log(time),data=data))$adj.r.squared
+rsq1[6] <- summary(lm(conc~I((time)^(-0.5)),data=data))$adj.r.squared
+rsq1[7] <- summary(lm(conc~I((time)^(-1)),data=data))$adj.r.squared
+rsq1[8] <- summary(lm(conc~I((time)^(-2)),data=data))$adj.r.squared
 which.max(rsq1)
 rsq1[which.max(rsq1)]
 ```
 Based on this, we choose the log transform of time, and now-consider whether a second order fractional polynomial would improve the fit. This involves adding, in turn, each of the powers previously considered, as well as $time\times\log(time)$.
 ```{r}
 rsq2 <- array(dim=8)
-rsq2[1] <- summary(lm(conc~log(time)+ time,data=Phenobarb.conc))$adj.r.squared
-rsq2[2] <- summary(lm(conc~log(time)+ I((time)^0.5),data=Phenobarb.conc))$adj.r.squared
-rsq2[3] <- summary(lm(conc~log(time) + I((time)^2),data=Phenobarb.conc))$adj.r.squared
-rsq2[4] <- summary(lm(conc~log(time)+ I((time)^3),data=Phenobarb.conc))$adj.r.squared
-rsq2[5] <- summary(lm(conc~log(time)+ time:log(time),data=Phenobarb.conc))$adj.r.squared
-rsq2[6] <- summary(lm(conc~log(time) + I((time)^(-0.5))*log(1+time),data=Phenobarb.conc))$adj.r.squared
-rsq2[7] <- summary(lm(conc~log(time) + I((time)^(-1)),data=Phenobarb.conc))$adj.r.squared
-rsq2[8] <- summary(lm(conc~log(time)+ I((time)^(-2)),data=Phenobarb.conc))$adj.r.squared
+rsq2[1] <- summary(lm(conc~log(time)+ time,data=data))$adj.r.squared
+rsq2[2] <- summary(lm(conc~log(time)+ I((time)^0.5),data=data))$adj.r.squared
+rsq2[3] <- summary(lm(conc~log(time) + I((time)^2),data=data))$adj.r.squared
+rsq2[4] <- summary(lm(conc~log(time)+ I((time)^3),data=data))$adj.r.squared
+rsq2[5] <- summary(lm(conc~log(time)+ time:log(time),data=data))$adj.r.squared
+rsq2[6] <- summary(lm(conc~log(time) + I((time)^(-0.5))*log(1+time),data=data))$adj.r.squared
+rsq2[7] <- summary(lm(conc~log(time) + I((time)^(-1)),data=data))$adj.r.squared
+rsq2[8] <- summary(lm(conc~log(time)+ I((time)^(-2)),data=data))$adj.r.squared
 which.max(rsq2)
 rsq2[which.max(rsq2)]
 ```
 We thus use time^3, log(time) and their interaction to describe concentration over time. The inverse-intensity-weighted GEE can be fitted using the function iiwgee. This function specifies first the formula for the GEE, then the formula for the inverse intensity weights.
 ```{r}
-iiwgee <- iiwgee(conc ~ I(time^3) + log(time),Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),
-        formulanull=NULL,id="id",time="time",event="event",data=Phenobarb.conc,
-        invariant="id",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+iiwgee <- iiwgee(conc ~ I(time^3) + log(time),Surv(time.lag,time,event)~Wt *dose.lag + 
+        dose.lag*(I(conc.lag>0) + conc.lag) +cluster(Subject),
+        formulanull=NULL,id="id",time="time",event="event",data=data,
+        invariant="id",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
 
 ```
 Note that the iiwgee function does not include an option for the working variance. As discussed above, when working with inverse-intensity weights, the working variance should always be the identity. The iiwgee function returns the inverse-intensity weighted GEE fit:
@@ -141,20 +160,20 @@ summary(iiwgee$geefit)
 ```
 We can also verify that this is the same as deriving the weights through iiw.weights then inputting them as weights into geeglm:
 ```{r}
-i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + 
-      cluster(Subject),id="id",time="time",event="event",data=Phenobarb.conc,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
-Phenobarb.conc$weight[order(Phenobarb.conc$id)] <- i$iiw.weight
-mw <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=Phenobarb.conc, weights=weight)
+i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + dose.lag*(I(conc.lag>0) + conc.lag) +
+      cluster(Subject),id="id",time="time",event="event",data=data,
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
+data$wt[order(data$id)] <- i$iiw.weight
+mw <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=wt)
 summary(mw)
 ```
 For comparison, we also fit the unweighted GEE, and plot the two serum concentration trajectories
 ```{r fig2, fig.height=6, fig.width=6, fig.align="center"}
-m <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=Phenobarb)
+m <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data)
 time <- (1:200)
 unweighted <- cbind(rep(1,200),time^3,log(time))%*%m$coefficients
 weighted <- cbind(rep(1,200),time^3,log(time))%*%iiwgee$geefit$coefficients
-plot(Phenobarb$time,Phenobarb$conc,xlim=c(0,200),pch=16,xlab="Time",ylab="Serum phenobarbital concentration")
+plot(data$time,data$conc,xlim=c(0,200),pch=16,xlab="Time",ylab="Serum phenobarbital concentration")
 lines(time,unweighted,type="l")
 lines(time,weighted,col=2)
 legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)
@@ -167,29 +186,26 @@ summary(iiwgee$phfit)
 
 
 ## Multiple Outputation
-Once the inverse-intensity weights have been calculated, an alternative use for them is to perform  multiple outputation. The code below computes 20 outputted datasets, analyses each using an unweighted GEE, then combines the results. 
+Once the inverse-intensity weights have been calculated, an alternative use for them is to perform  multiple outputation. When some of the weights are very large, this can result i very small outputted datasets, and so it can be helpful to truncate the weights. The code below computes 20 outputted datasets, analyses each using an unweighted GEE, then combines the results. 
 
 ```{r ,results='hide',message=FALSE, eval=FALSE}
 library(geesmv)
-data(Phenobarb)
-Phenobarb$id <- as.numeric(Phenobarb$Subject)
-Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + 
-      cluster(id),id="id",time="time",event="event",data=Phenobarb.conc,
-      invariant="id",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=FALSE,frailty=FALSE)
+
+
 reg <- function(data){
-  est <- geeglm(conc~I(time^3) + log(time), id=id,data=data)$coefficients
-  est <- cbind(est,GEE.var.md(conc~I(time^3) + log(time), id=id,data=data)$cov.beta)
+  est <- summary(geeglm(conc~I(time^3) + log(time), id=id,data=data))$coefficients[,1:2]
+  if(max(table(data$id))>1) est[,2] <- GEE.var.md(conc~I(time^3) + log(time), id=id,data=data)$cov.beta
   est <- data.matrix(est)
   return(est)
 }
 set.seed(301031)
-m.mogee <- mo(20,reg,Phenobarb.conc,i$iiw.weight, singleobs=FALSE,id="id",time="time",keep.first=FALSE,var=TRUE)
+wt <- i$iiw.weight
+wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
+m.mogee <- mo(20,reg,data,wt, singleobs=FALSE,id="id",time="time",keep.first=FALSE,var=TRUE)
 m.mogee
 ```
 
-The multiple outputation estimates of the regression coefficients (```$est```), and is the mean across outputations of the GEE estimates. The multiple outputation standard error (```$se```) is a function of both the within outputation standard errors and the between outputation variance. The relative efficiency of using 20 outputations in place of all possible outputations is given by ```RE.MO```. In this example the number of subjects becomes small on outputation, resulting in the usual sandwich variance estimator for the GEE underestimating the standard error. For this reason, we use a small sample  sandwich variance correction from the "geesmv" package. There are a number of options available, and in this example we have used the Mancl deRouen correction [ref]. The multiple outputation estimates based on the above seed were 17.4 (SE 2.13), 5.73e-08 (SE 9.95e-07) and 2.88(SE 6.61) for the intercept, $time^3$, and $\log(time)$ respectively. The relative efficiencies were 1.05, 1.09, and 1.13, suggesting that the standard errors could be slightly reduced by running more outputations.
+The multiple outputation estimates of the regression coefficients (```$est```), and is the mean across outputations of the GEE estimates. The multiple outputation standard error (```$se```) is a function of both the within outputation standard errors and the between outputation variance. The relative efficiency of using 20 outputations in place of all possible outputations is given by ```RE.MO```. In this example the number of observations per subject becomes small on outputation, resulting in the usual sandwich variance estimator for the GEE underestimating the standard error. For this reason, we use a small sample  sandwich variance correction from the "geesmv" package. There are a number of options available, and in this example we have used the Mancl deRouen correction [ref]. The multiple outputation estimates based on the above seed were 16.0 (SE 1.53), -7.72e-07 (SE 1.16e-07) and 3.42 (SE 5.52) for the intercept, $time^3$, and $\log(time)$ respectively. The relative efficiencies were 1.01, 1.008, and 1.008, suggesting that there is little to be gained by running more outputations.
 
 
 Multiple outputation is helpful for analyses where weighting is difficult to implement. One such example is a semi-parametric joint model. Semi-parametric joint models are useful when there are latent variables that influence both the outcome and visit processes. We consider the Liang [@Liang2009] semi-parametric joint model:
@@ -208,31 +224,23 @@ with visit process model given by
 \[\lambda_i(t)=\nu_{i2}\lambda_0(t)\exp(I(conc_i(T_{iN_i(t^-)})>0)\gamma_1 + conc_i(T_{iN_i(t^-)})\gamma_2), \]
 where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially correlated. Note that when calculating the weights used for outputation, the ```frailty=TRUE``` option should be used in visit intensity calculation because the lagged concentration is an internal covariate that is potentially correlated with the frailty variable, and the Cox model is non-collapsible. A difficulty with using multiple outputation is that it reduces the size of the dataset available for each analysis, which can result in singularities in regression models. In this example, some outputted datasets have no subjects with an Apgar score less than 5, and hence the regression model cannot be fitted. A pragmatic work-around is to truncate the weights - this introduces some bias but results in a higher proportion of observations being retained at each outputation and consequently a smaller chance of singularities. In this example we truncate at 15, resulting in 26 of the 155 weights being truncated.
 ```{r,results='hide',message=FALSE}
-data(Phenobarb)
-Phenobarb$id <- as.numeric(Phenobarb$Subject)
-Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + 
-        cluster(id),id="id",time="time",event="event",data=Phenobarb.conc,
-        invariant="id",lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=FALSE,
-        frailty=TRUE)
-summary(i$iiw.weight)
-sum(i$iiw.weight>15)
+
 Liangmo <- function(data,Yname,Xnames,Wnames,maxfu,baseline){
  x <- Liang(data,Yname,Xnames,Wnames,id="id",time="time",maxfu,baseline); print(x); return(x)
 }
-Phenobarb.conc$Intercept <- 1
-Phenobarb.conc$time3 <- Phenobarb.conc$time^3
-Phenobarb.conc$logtime <- log(Phenobarb.conc$time)
-Phenobarb.conc$ApgarInd.time3 <- as.numeric(Phenobarb.conc$ApgarInd)*(Phenobarb.conc$time^3)
-Phenobarb.conc$ApgarInd.logtime <- as.numeric(Phenobarb.conc$ApgarInd)*log(Phenobarb.conc$time)
-weightstrunc <- i$iiw.weight
-weightstrunc[weightstrunc>15] <- 15
+data$Intercept <- 1
+data$time3 <- data$time^3
+data$logtime <- log(data$time)
+data$ApgarInd.time3 <- as.numeric(data$ApgarInd)*(data$time^3)
+data$ApgarInd.logtime <- as.numeric(data$ApgarInd)*log(data$time)
+
 set.seed(301031)
-m.moLiang <- mo(20,Liangmo,Phenobarb.conc,weightstrunc, 
+wt <- i$iiw.weight
+wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
+m.moLiang <- mo(20,Liangmo,data,wt, 
         singleobs=FALSE,id="id",time="time",keep.first=FALSE,var=FALSE,Yname="conc",
         Xnames=c("ApgarInd","ApgarInd.time3","ApgarInd.logtime"), 
-        Wnames=c("Intercept"),maxfu=1000,baseline=0)
+        Wnames=c("Intercept"),maxfu=16*24,baseline=0)
 ```
 
 ```{r}
@@ -240,7 +248,7 @@ m.moLiang$est
 ```
 For comparison, we also compute the estimate assuming that the measurement and outcome processes are independent given the last observed concentration, and plot the two curves. 
 ```{r fig4, fig.height=6, fig.width=6, fig.align="center"}
-miiwgee <- geeglm(conc ~ ApgarInd *(time3 + log(time)),id=id,weight=weightstrunc,data=Phenobarb.conc)
+miiwgee <- geeglm(conc ~ ApgarInd *(time3 + log(time)),id=id,weight=wt,data=data)
 
 summary(miiwgee)
 time <- (1:200)

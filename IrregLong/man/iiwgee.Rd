@@ -51,22 +51,28 @@ library(nlme)
 data(Phenobarb)
 library(survival)
 library(geepack)
-Phenobarb$id <- as.numeric(Phenobarb$Subject)
-Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-miiwgee <- iiwgee(conc ~ time*log(time),
-Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),
-formulanull=NULL,id="id",time="time",event="event",data=Phenobarb.conc,invariant="id",
-lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
+data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
+data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
+data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
+data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+data <- data[data$event==1,]
+data$id <- as.numeric(data$Subject)
+data <- data[data$time<16*24,]
+miiwgee <- iiwgee(conc ~ I(time^3) + log(time),Surv(time.lag,time,event)~Wt *dose.lag +
+dose.lag*(I(conc.lag>0) + conc.lag) +cluster(Subject),
+formulanull=NULL,id="id",time="time",event="event",data=data,
+invariant="id",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
 summary(miiwgee$geefit)
 summary(miiwgee$phfit)
 
 # compare to results without weighting
-m <- geeglm(conc ~ time*log(time) , id=Subject, data=Phenobarb); print(summary(m))
+m <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data); print(summary(m))
 time <- (1:200)
-unweighted <- cbind(rep(1,200),time,log(time),time*log(time))\%*\%m$coefficients
-weighted <- cbind(rep(1,200),time,log(time),time*log(time))\%*\%miiwgee$geefit$coefficients
-plot(Phenobarb$time,Phenobarb$conc,xlim=c(0,200),pch=16)
+unweighted <- cbind(rep(1,200),time^3,log(time))\%*\%m$coefficients
+weighted <- cbind(rep(1,200),time^3,log(time))\%*\%miiwgee$geefit$coefficients
+plot(data$time,data$conc,xlim=c(0,200),pch=16)
 lines(time,unweighted,type="l")
 lines(time,weighted,col=2)
 legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)

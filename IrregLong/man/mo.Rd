@@ -39,22 +39,33 @@ library(nlme)
 data(Phenobarb)
 library(survival)
 library(geepack)
-Phenobarb$id <- as.numeric(Phenobarb$Subject)
-Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(Subject),
-id="id",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
-lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
-Phenobarb.conc$weight <- i$iiw.weight
-reg <- function(data){
- 	return(data.matrix(summary(geeglm(conc ~ time*log(time) ,
- 	id=Subject, data=data))$coefficients[,1:2]))
- }
 
-mo(20,reg,Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
-# does not yield valid variance estimates
-# once thinned the dataset contains fewer than 30 subjects for most outputations,
-# so the sandwich variance estimate from the GEE is too small
+Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
+data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
+data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
+data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
+data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+data <- data[data$event==1,]
+data$id <- as.numeric(data$Subject)
+data <- data[data$time<16*24,]
+i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + dose.lag*(I(conc.lag>0) + conc.lag) +
+cluster(Subject),id="id",time="time",event="event",data=data,
+invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
+wt <- i$iiw.weight
+wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
+data$wt <- wt
+reg <- function(data){
+est <- summary(geeglm(conc~I(time^3) + log(time), id=id,data=data))$coefficients[,1:2]
+est <- data.matrix(est)
+return(est)
+}
+
+mo(20,reg,data,wt,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+# On outputation, the dataset contains small numbers of observations per subject
+# and hence the GEE sandwich variance estimate underestimates variance; this is why the
+# outputation-based variance estimate fails. This can be remedied by using a sandwich variance
+# error correction (e.g. Fay-Graubard, Mancl-DeRouen).
 }
 \references{
 \itemize{

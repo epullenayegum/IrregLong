@@ -89,16 +89,12 @@ lagfn <- function(data,lagvars,id,time,lagfirst=NA){
 addcensoredrows <- function(data,maxfu,tinvarcols,id,time,event){
 	if(length(maxfu)==1){ maxfu <- rep(maxfu,length(table(data[,names(data)%in%id]))) } else maxfu <- maxfu[,2]
 
-	range <- array(dim=length(tinvarcols))
-	for(col in 1:length(range)) range[col] <- min(tapply(data[,tinvarcols[col]],data[,names(data)%in%id],max)-tapply(data[,tinvarcols[col]],data[,names(data)%in%id],min))
-	if(max(range)>0){print("Those columns are not time invariant")}
-
 	extrarows <- array(dim=c(length(table(data[,names(data)%in%id])),ncol(data)))
 
-	means <- array(dim=c(length(table(data[,names(data)%in%id])),length(tinvarcols)))
-	for(col in 1:length(tinvarcols)) means[,col] <- tapply(data[,tinvarcols[col]],data[,names(data)%in%id],mean)
+	values <- array(dim=c(length(table(data[,names(data)%in%id])),length(tinvarcols)))
+	for(col in 1:length(tinvarcols)) values[,col] <- tapply(data[,tinvarcols[col]],data[,names(data)%in%id],sample,size=1)
 
-	extrarows[,tinvarcols] <- means
+	extrarows[,tinvarcols] <- values
 
 	extrarows <- as.data.frame(extrarows)
 	names(extrarows) <- names(data)
@@ -145,15 +141,23 @@ phfn <- function(datacox,regcols,data){
 #' data(Phenobarb)
 #' library(survival)
 #' library(geepack)
-#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-#' Phenobarb.conc <- lagfn(Phenobarb.conc,c("time","conc"),"id","time")
+#' data(Phenobarb)
+#' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+#' data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+#' data <- data[data$event==1,]
+#' data$id <- as.numeric(data$Subject)
+#' data <- data[data$time<16*24,]
+#' data <- lagfn(data, lagvars=c("time","conc"), id="Subject", time="time", lagfirst = NA)
+#' head(data)
 #'
-#' mph <- coxph(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),data=Phenobarb.conc)
+#' mph <- coxph(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),data=data)
 #' summary(mph)
-#' Phenobarb.conc$weight <- iiw(mph,Phenobarb.conc,"id","time",TRUE)
-#' head(Phenobarb)
+#' data$weight <- iiw(mph,data,"id","time",TRUE)
+#' head(data)
 #' @export
 
 iiw <- function(phfit,data,id,time,first){
@@ -197,22 +201,28 @@ iiw <- function(phfit,data,id,time,first){
 #' data(Phenobarb)
 #' library(survival)
 #' library(geepack)
-#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-#' miiwgee <- iiwgee(conc ~ time*log(time),
-#' Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),
-#' formulanull=NULL,id="id",time="time",event="event",data=Phenobarb.conc,invariant="id",
-#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+#' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+#' data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+#' data <- data[data$event==1,]
+#' data$id <- as.numeric(data$Subject)
+#' data <- data[data$time<16*24,]
+#' miiwgee <- iiwgee(conc ~ I(time^3) + log(time),Surv(time.lag,time,event)~Wt *dose.lag +
+#' dose.lag*(I(conc.lag>0) + conc.lag) +cluster(Subject),
+#' formulanull=NULL,id="id",time="time",event="event",data=data,
+#' invariant="id",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
 #' summary(miiwgee$geefit)
 #' summary(miiwgee$phfit)
 #'
 #' # compare to results without weighting
-#' m <- geeglm(conc ~ time*log(time) , id=Subject, data=Phenobarb); print(summary(m))
+#' m <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data); print(summary(m))
 #' time <- (1:200)
-#' unweighted <- cbind(rep(1,200),time,log(time),time*log(time))%*%m$coefficients
-#' weighted <- cbind(rep(1,200),time,log(time),time*log(time))%*%miiwgee$geefit$coefficients
-#' plot(Phenobarb$time,Phenobarb$conc,xlim=c(0,200),pch=16)
+#' unweighted <- cbind(rep(1,200),time^3,log(time))%*%m$coefficients
+#' weighted <- cbind(rep(1,200),time^3,log(time))%*%miiwgee$geefit$coefficients
+#' plot(data$time,data$conc,xlim=c(0,200),pch=16)
 #' lines(time,unweighted,type="l")
 #' lines(time,weighted,col=2)
 #' legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)
@@ -267,22 +277,28 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' data(Phenobarb)
 #' library(survival)
 #' library(geepack)
-#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-#' i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(Subject),
-#' id="id",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
-#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
-#' Phenobarb.conc$weight <- i$iiw.weight
+#' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+#' data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+#' data <- data[data$event==1,]
+#' data$id <- as.numeric(data$Subject)
+#' data <- data[data$time<16*24,]
+#' i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + dose.lag*(I(conc.lag>0) + conc.lag) +
+#' cluster(Subject),id="id",time="time",event="event",data=data,
+#' invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
+#' data$weight <- i$iiw.weight
 #' summary(i$m)
 #' # can use to fit a weighted GEE
-#' mw <- geeglm(conc ~ time*log(time) , id=Subject, data=Phenobarb.conc, weights=weight)
+#' mw <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=weight)
 #' summary(mw)
 #' # agrees with results through the single command iiwgee
-#' miiwgee <- iiwgee(conc ~ time*log(time),
-#' Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),
-#' formulanull=NULL,id="id",time="time",event="event",data=Phenobarb.conc,invariant="id",
-#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
+#' miiwgee <- iiwgee(conc ~ I(time^3) + log(time),Surv(time.lag,time,event)~Wt *dose.lag +
+#' dose.lag*(I(conc.lag>0) + conc.lag) +cluster(Subject),
+#' formulanull=NULL,id="id",time="time",event="event",data=data,
+#' invariant="id",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
 #' summary(miiwgee$geefit)
 #' @family iiw
 #' @export
@@ -345,7 +361,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 	firstvisit <- as.numeric(data[,names(data)%in%time]==tmin[data[,names(data)%in%id]])
 	if(first){data$useweight[firstvisit==1] <- 1}
 
-	return(list(iiw.weight=data$useweight,m=m,m0=m0))
+	return(list(iiw.weight=data$useweight,m=m,m0=m0,datacox=datacox))
 }
 
 
@@ -372,21 +388,27 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' data(Phenobarb)
 #' library(survival)
 #' library(geepack)
-#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-#' i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(Subject),
-#' id="Subject",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
-#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
-#' Phenobarb.conc$weight <- i$iiw.weight
-#' head(Phenobarb.conc)
-#' data.output1 <-   outputation(Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,
+#' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+#' data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+#' data <- data[data$event==1,]
+#' data$id <- as.numeric(data$Subject)
+#' data <- data[data$time<16*24,]
+#' i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + dose.lag*(I(conc.lag>0) + conc.lag) +
+#' cluster(Subject),id="id",time="time",event="event",data=data,
+#' invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
+#' data$weight <- i$iiw.weight
+#' head(data)
+#' data.output1 <-   outputation(data,data$weight,singleobs=FALSE,
 #' id="id",time="time",keep.first=FALSE)
 #' head(data.output1)
-#' data.output2 <-   outputation(Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,
+#' data.output2 <-   outputation(data,data$weight,singleobs=FALSE,
 #' id="id",time="time",keep.first=FALSE)
 #' head(data.output2)
-#' data.output3 <-   outputation(Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,
+#' data.output3 <-   outputation(data,data$weight,singleobs=FALSE,
 #' id="id",time="time",keep.first=FALSE)
 #' head(data.output3)
 #' # Note that the outputted dataset varies with each command run; outputation is done at random
@@ -467,22 +489,33 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' data(Phenobarb)
 #' library(survival)
 #' library(geepack)
-#' Phenobarb$id <- as.numeric(Phenobarb$Subject)
-#' Phenobarb$event <- as.numeric(is.finite(Phenobarb$conc))
-#' Phenobarb.conc <- Phenobarb[is.finite(Phenobarb$conc),]
-#' i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(Subject),
-#' id="id",time="time",event="event",data=Phenobarb.conc,invariant="Subject",
-#' lagvars=c("time","conc"),maxfu=NULL,lagfirst=0,first=TRUE)
-#' Phenobarb.conc$weight <- i$iiw.weight
-#' reg <- function(data){
-#'  	return(data.matrix(summary(geeglm(conc ~ time*log(time) ,
-#'  	id=Subject, data=data))$coefficients[,1:2]))
-#'  }
 #'
-#' mo(20,reg,Phenobarb.conc,Phenobarb.conc$weight,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
-#' # does not yield valid variance estimates
-#' # once thinned the dataset contains fewer than 30 subjects for most outputations,
-#' # so the sandwich variance estimate from the GEE is too small
+#' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+#' data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+#' data <- data[data$event==1,]
+#' data$id <- as.numeric(data$Subject)
+#' data <- data[data$time<16*24,]
+#' i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + dose.lag*(I(conc.lag>0) + conc.lag) +
+#' cluster(Subject),id="id",time="time",event="event",data=data,
+#' invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
+#' wt <- i$iiw.weight
+#' wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
+#' data$wt <- wt
+#' reg <- function(data){
+#' est <- summary(geeglm(conc~I(time^3) + log(time), id=id,data=data))$coefficients[,1:2]
+#' est <- data.matrix(est)
+#' return(est)
+#' }
+#'
+#' mo(20,reg,data,wt,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
+#' # On outputation, the dataset contains small numbers of observations per subject
+#' # and hence the GEE sandwich variance estimate underestimates variance; this is why the
+#' # outputation-based variance estimate fails. This can be remedied by using a sandwich variance
+#' # error correction (e.g. Fay-Graubard, Mancl-DeRouen).
 #' @export
 
 
