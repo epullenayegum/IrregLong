@@ -5,7 +5,7 @@
 \title{Compute inverse-intensity weights.}
 \usage{
 iiw.weights(formulaph, formulanull = NULL, data, id, time, event,
-  lagvars, invariant, maxfu, lagfirst = lagfirst, first,
+  lagvars, invariant = NULL, maxfu, lagfirst = lagfirst, first,
   frailty = FALSE)
 }
 \arguments{
@@ -27,7 +27,7 @@ iiw.weights(formulaph, formulanull = NULL, data, id, time, event,
 
 \item{maxfu}{the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data}
 
-\item{lagfirst}{The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
+\item{lagfirst}{A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
 
 \item{first}{logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.}
 

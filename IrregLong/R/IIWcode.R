@@ -2,6 +2,7 @@
 #' @import stats survival geepack
 #' @importFrom frailtypack frailtyPenal
 #' @importFrom stats runif formula model.matrix predict terms
+#' @importFrom graphics plot points segments
 
 
 lagby1.1person <- function(x){
@@ -31,7 +32,7 @@ lagby1.1var <- function(x,id,time,lagfirst=NA){
 #' @param lagvars The names of the columns in the data to be lagged
 #' @param id A character indicating which column of the data contains subject identifiers. ids are assumed to be consecutive integers, with the first subject having id 1
 #' @param time A character indicating which column of the data contains the times at which each of the observations in data was made
-#' @param lagfirst The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
+#' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @return The original data frame with lagged variables added on as columns. For example, if the data frame contains a variable named x giving the value of x for each subject i at each visit j, the returned data frame will contain a column named x.lag containing the value of x for subject i at visit j-1. If j is the first visit for subject i, the lagged value is set to NA
 #' @examples
 #' library(nlme)
@@ -47,8 +48,11 @@ lagfn <- function(data,lagvars,id,time,lagfirst=NA){
 
 #	lagged <- sapply(data[,columns],lagby1.1var,data[,names(data)%in%id],data[,names(data)%in%time])
   columns <- (1:ncol(data))[is.finite(match(names(data), lagvars))]
-  	lagged <- apply(array(data.matrix(data[,columns]),dim=c(nrow(data),length(columns))),2,lagby1.1var,data[,names(data)%in%id],data[,names(data)%in%time],lagfirst=lagfirst)
-	lagged <- as.data.frame(lagged)
+  for(col in 1:length(columns)){
+  	if(col==1) lagged <- lagby1.1var(x=data[,columns[col]],id=data[,names(data)%in%id],time=data[,names(data)%in%time],lagfirst=lagfirst[col])
+  	if(col>1) lagged <- cbind(lagged,lagby1.1var(x=data[,columns[col]],id=data[,names(data)%in%id],time=data[,names(data)%in%time],lagfirst=lagfirst[col]))
+  }
+  	lagged <- as.data.frame(lagged)
 	for(col in 1:length(columns)) names(lagged)[col] <- paste(names(data)[columns][col],".lag",sep="")
 	data <- cbind(data,lagged)
 	return(data)
@@ -187,7 +191,7 @@ iiw <- function(phfit,data,id,time,first){
 #' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
 #' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
-#' @param lagfirst The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
+#' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @return a list, with the following elements:
 #' \item{geefit}{the fitted GEE, see documentation for geeglm for details}
@@ -228,7 +232,7 @@ iiw <- function(phfit,data,id,time,first){
 #' legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)
 #' @export
 
-iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,family=gaussian,lagvars,invariant,maxfu,lagfirst=NA,first){
+iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,family=gaussian,lagvars,invariant=NULL,maxfu,lagfirst=NA,first){
 # id is the id variable
 # lagvars are the variables to be lagged
 # invariant are the variables that are invariant. Only need to be entered if they are in formulaph
@@ -263,7 +267,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
 #' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
-#' @param lagfirst The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
+#' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @param frailty logical variable. If TRUE, a frailty model is fit to calculate the inverse intensity weights. If FALSE, a marginal semi-parametric model is fit. Frailty models are helpful when fitting semi-parametric joint models.
 #' @return a vector of inverse-intensity weights, ordered on id then time
@@ -303,11 +307,13 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' @family iiw
 #' @export
 
-iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invariant,maxfu,lagfirst=lagfirst,first,frailty=FALSE){
+iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invariant=NULL,maxfu,lagfirst=lagfirst,first,frailty=FALSE){
 	if(is.null(maxfu) & frailty){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
 	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
 
-#	lagcols <- (1:ncol(data))[is.finite(match(names(data), lagvars))]
+  if(is.null(invariant) & !is.null(maxfu)) print("invariant must be specified if maxfu is non-null")
+
+	#	lagcols <- (1:ncol(data))[is.finite(match(names(data), lagvars))]
 	invarcols <- (1:ncol(data))[is.finite(match(names(data), invariant))]
 
 	stabilize <- !is.null(formulanull)
@@ -667,5 +673,40 @@ Liang <- function(data,Yname, Xnames, Wnames, id,time, maxfu,baseline ){
   return(beta[1:ncol(X)])
 }
 
+
+#' Create an abacus plot
+#'Creates an abacus plot, depicting visits per subject over time
+#'
+#' @details This function creates a plot for n randomly sampled individuals from the supplied dataset, with one row per subject and one point per visit. This can be useful for visualising the extent of irregularity in the visit process. For example, with perfect repeated measures data (i.e., no irregulrity), the points will line up vertically. With greater irregularity, the points will be randomly scattered over time.
+#' @param n the number of sujects to randomly sample. Subjects are sampled without replacement and therefore n must be smaller than the total number of subjects in the dataset
+#' @param time character string indicating which column of the data contains the time at which the visit occurred
+#' @param id character string indicating which column of the data identifies subjects
+#' @param data data frame containing the variables in the model
+#' @param tmin the smallest time to include on the x-axis
+#' @param tmax the largest time to include on the x-axis
+#' @param xlab.abacus the label for the x-axis
+#' @param ylab.abacus the label for the y-axis
+#' @param pch.abacus the plotting character for the points on the abacus plot
+#' @param col.abacus the colour of the rails on the abacus plot
+#' @return produces a plot depicting observation times for each subject. No values are returned
+#' @examples
+#' library(MEMSS)
+#' data(Phenobarb)
+#' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+#' data <- Phenobarb[Phenobarb$event==1,]
+#' abacus.plot(n=20,time="time",id="Subject",data=data,tmin=0,tmax=16*24,
+#' xlab.abacus="Time in hours",pch=16,col.abacus=gray(0.8))
+#' @export
+
+
+abacus.plot <- function(n,time,id,data,tmin,tmax,xlab.abacus="Time",ylab.abacus="Subject",pch.abacus=16,col.abacus=1){
+  use.ids <- sample(levels(factor(data[,names(data)%in%id])),n,replace=FALSE)
+  use.data <- data[data[,names(data)%in%id]%in%use.ids,]
+  use.data$newids <- NA
+  for(i in 1:n) use.data$newids[use.data[,names(use.data)%in%id]%in%use.ids[i]] <- i
+  plot(use.data[,names(use.data)%in%time],use.data$newids,xlim=c(tmin,tmax),pch=pch.abacus,xlab=xlab.abacus,ylab=ylab.abacus,type="n")
+  segments(rep(tmin,nrow(use.data)),use.data$newids,rep(tmax,nrow(use.data)),use.data$newids,col=col.abacus)
+  points(use.data[,names(use.data)%in%time],use.data$newids,pch=pch.abacus)
+}
 
 

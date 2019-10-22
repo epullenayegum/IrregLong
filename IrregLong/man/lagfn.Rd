@@ -15,7 +15,7 @@ lagfn(data, lagvars, id, time, lagfirst = NA)
 
 \item{time}{A character indicating which column of the data contains the times at which each of the observations in data was made}
 
-\item{lagfirst}{The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
+\item{lagfirst}{A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
 }
 \value{
 The original data frame with lagged variables added on as columns. For example, if the data frame contains a variable named x giving the value of x for each subject i at each visit j, the returned data frame will contain a column named x.lag containing the value of x for subject i at visit j-1. If j is the first visit for subject i, the lagged value is set to NA

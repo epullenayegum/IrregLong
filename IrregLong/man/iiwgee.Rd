@@ -5,7 +5,8 @@
 \title{Fit an inverse-intensity weighted GEE.}
 \usage{
 iiwgee(formulagee, formulaph, formulanull = NULL, data, id, time, event,
-  family = gaussian, lagvars, invariant, maxfu, lagfirst = NA, first)
+  family = gaussian, lagvars, invariant = NULL, maxfu, lagfirst = NA,
+  first)
 }
 \arguments{
 \item{formulagee}{the formula for the GEE model to be fit. The syntax used is the same as in geeglm}
@@ -30,7 +31,7 @@ iiwgee(formulagee, formulaph, formulanull = NULL, data, id, time, event,
 
 \item{maxfu}{the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data}
 
-\item{lagfirst}{The value of the lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
+\item{lagfirst}{A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
 
 \item{first}{logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.}
 }

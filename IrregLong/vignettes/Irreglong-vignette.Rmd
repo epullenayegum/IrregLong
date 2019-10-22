@@ -12,7 +12,7 @@ vignette: >
 
 ## Overview
 
-Longitudinal data often has follow-up times that are irregular and potentially related to outcomes. For example, in a clinic-based cohort study where all follow-up is part of usual care, patients may visit more often when unwell. This risks over-estimating the burden of disease unless data are analysed appropriately. For example, in a study of HIV positive mothers, Buzkova et al @Buzkova found a two-fold over-estimation of the estimated prevalence of pneumonia when analysis ignored the fact that women were more likely to visit between scheduled visits when they were unwell
+Longitudinal data often has follow-up times that are irregular and potentially related to outcomes. For example, in a clinic-based cohort study where all follow-up is part of usual care, patients may visit more often when unwell. This risks over-estimating the burden of disease unless data are analysed appropriately. For example, in a study of HIV positive mothers, Buzkova et al @Buzkova2010 found a two-fold over-estimation of the estimated prevalence of pneumonia when analysis ignored the fact that women were more likely to visit between scheduled visits when they were unwell
 
 There are two categories of methods available for analysing this type of data: methods based on inverse-intensity weighting, and methods based on semi-parametric joint models (see @Pullenayegum2015 for an overview). This package provides methods for inverse-intensity weighting. 
 
@@ -80,7 +80,7 @@ To fit an inverse intensity weighted GEE, one begins by modelling the visit inte
 ```{r}
 i <- iiw.weights(Surv(time.lag,time,event)~Wt + Apgar + I(conc.lag>0) + conc.lag + dose.lag +
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 ```
 
@@ -88,27 +88,27 @@ Since Apgar score is not significant, we consider whether the model can be simpl
 ```{r}
 i <- iiw.weights(Surv(time.lag,time,event)~Wt + ApgarInd + I(conc.lag>0) + conc.lag + dose.lag +
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + dose.lag +
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 i <- iiw.weights(Surv(time.lag,time,event)~Wt *( I(conc.lag>0) + conc.lag) + dose.lag +
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + I(conc.lag>0) + conc.lag +
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 i <- iiw.weights(Surv(time.lag,time,event)~Wt *(dose.lag + I(conc.lag>0)) + conc.lag +
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + dose.lag*(I(conc.lag>0) + conc.lag) +
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=FALSE)
+      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 ```
 It thus appears that last dose, birthweight, last concentration, and the interactions between last dose and birthweight and last dose and concentration are predictive of the time to the next concentration measurement.
@@ -151,22 +151,14 @@ We thus use time^3, log(time) and their interaction to describe concentration ov
 iiwgee <- iiwgee(conc ~ I(time^3) + log(time),Surv(time.lag,time,event)~Wt *dose.lag + 
         dose.lag*(I(conc.lag>0) + conc.lag) +cluster(Subject),
         formulanull=NULL,id="id",time="time",event="event",data=data,
-        invariant="id",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
+        invariant="id",lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=TRUE)
 
 ```
 Note that the iiwgee function does not include an option for the working variance. As discussed above, when working with inverse-intensity weights, the working variance should always be the identity. The iiwgee function returns the inverse-intensity weighted GEE fit:
 ```{r}
 summary(iiwgee$geefit)
 ```
-We can also verify that this is the same as deriving the weights through iiw.weights then inputting them as weights into geeglm:
-```{r}
-i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + dose.lag*(I(conc.lag>0) + conc.lag) +
-      cluster(Subject),id="id",time="time",event="event",data=data,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
-data$wt[order(data$id)] <- i$iiw.weight
-mw <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=wt)
-summary(mw)
-```
+
 For comparison, we also fit the unweighted GEE, and plot the two serum concentration trajectories
 ```{r fig2, fig.height=6, fig.width=6, fig.align="center"}
 m <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data)
@@ -222,7 +214,7 @@ We consider the same example as before, now examining whether the concentration 
 \[conc_i(t)=\beta_0(t) + \beta_1I(Apgar_i<5) + \beta_2I(Apgar\geq 5)t^3 + \beta_3I(Apgar\geq 5)log(t) +  \nu_{i1} + \epsilon_i(t),\]
 with visit process model given by
 \[\lambda_i(t)=\nu_{i2}\lambda_0(t)\exp(I(conc_i(T_{iN_i(t^-)})>0)\gamma_1 + conc_i(T_{iN_i(t^-)})\gamma_2), \]
-where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially correlated. Note that when calculating the weights used for outputation, the ```frailty=TRUE``` option should be used in visit intensity calculation because the lagged concentration is an internal covariate that is potentially correlated with the frailty variable, and the Cox model is non-collapsible. A difficulty with using multiple outputation is that it reduces the size of the dataset available for each analysis, which can result in singularities in regression models. In this example, some outputted datasets have no subjects with an Apgar score less than 5, and hence the regression model cannot be fitted. A pragmatic work-around is to truncate the weights - this introduces some bias but results in a higher proportion of observations being retained at each outputation and consequently a smaller chance of singularities. In this example we truncate at 15, resulting in 26 of the 155 weights being truncated.
+where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially correlated. Note that when calculating the weights used for outputation, the ```frailty=TRUE``` option should be used in visit intensity calculation because the lagged concentration is an internal covariate that is potentially correlated with the frailty variable, and the Cox model is non-collapsible. A difficulty with using multiple outputation is that it reduces the size of the dataset available for each analysis, which can result in singularities in regression models. In this example, some outputted datasets have no subjects with an Apgar score less than 5, and hence the regression model cannot be fitted. A pragmatic work-around is to truncate the weights - this introduces some bias but results in a higher proportion of observations being retained at each outputation and consequently a smaller chance of singularities. In this example we truncate at the 95th percentile.
 ```{r,results='hide',message=FALSE}
 
 Liangmo <- function(data,Yname,Xnames,Wnames,maxfu,baseline){
@@ -238,9 +230,9 @@ set.seed(301031)
 wt <- i$iiw.weight
 wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
 m.moLiang <- mo(20,Liangmo,data,wt, 
-        singleobs=FALSE,id="id",time="time",keep.first=FALSE,var=FALSE,Yname="conc",
-        Xnames=c("ApgarInd","ApgarInd.time3","ApgarInd.logtime"), 
-        Wnames=c("Intercept"),maxfu=16*24,baseline=0)
+         singleobs=FALSE,id="id",time="time",keep.first=FALSE,var=FALSE,Yname="conc",
+         Xnames=c("ApgarInd","ApgarInd.time3","ApgarInd.logtime"), 
+         Wnames=c("Intercept"),maxfu=16*24,baseline=0)
 ```
 
 ```{r}
