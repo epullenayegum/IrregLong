@@ -5,8 +5,7 @@
 \title{Fit an inverse-intensity weighted GEE.}
 \usage{
 iiwgee(formulagee, formulaph, formulanull = NULL, data, id, time, event,
-  family = gaussian, lagvars, invariant = NULL, maxfu, lagfirst = NA,
-  first)
+  family = gaussian, lagvars, invariant = NULL, maxfu, lagfirst, first)
 }
 \arguments{
 \item{formulagee}{the formula for the GEE model to be fit. The syntax used is the same as in geeglm}
