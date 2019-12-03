@@ -3,6 +3,7 @@
 #' @importFrom frailtypack frailtyPenal
 #' @importFrom stats runif formula model.matrix predict terms
 #' @importFrom graphics plot points segments
+#' @importFrom data.table data.table setkey rbindlist
 
 
 lagby1.1person <- function(x){
@@ -91,28 +92,31 @@ lagfn <- function(data,lagvars,id,time,lagfirst=NA){
 #' @export
 
 addcensoredrows <- function(data,maxfu,tinvarcols,id,time,event){
-	if(length(maxfu)==1){ maxfu <- rep(maxfu,length(table(data[,names(data)%in%id]))) } else maxfu <- maxfu[,2]
+  if(length(maxfu)==1){ maxfu <- rep(maxfu,length(table(data[,names(data)%in%id]))) } else maxfu <- maxfu[,2]
 
-	extrarows <- array(dim=c(length(table(data[,names(data)%in%id])),ncol(data)))
+  data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
 
-	values <- array(dim=c(length(table(data[,names(data)%in%id])),length(tinvarcols)))
-	for(col in 1:length(tinvarcols)) values[,col] <- tapply(data[,tinvarcols[col]],data[,names(data)%in%id],sample,size=1)
+  extrarows <- array(dim=c(length(table(data[,names(data)%in%id])),ncol(data)))
+  extrarows <- as.data.frame(extrarows)
+  names(extrarows) <- names(data)
 
-	extrarows[,tinvarcols] <- values
+  DT <- data.table(data)
+  setkey(DT, id)
 
-	extrarows <- as.data.frame(extrarows)
-	names(extrarows) <- names(data)
-	extrarows[,names(data)%in%id] <- 1:length(table(data[,names(data)%in%id]))
-# This line should possibly be changed to ... <- 1:maxfu[,1]
+  dt1 <- data.frame(DT[data.table(unique(id)), mult = "first"])
+  extrarows[,tinvarcols] <- dt1[,tinvarcols]
+  extrarows[,names(data)%in%id] <- dt1[,names(dt1)%in%id]
+  extrarows[,names(data)%in%time] <- maxfu
+  extrarows[,names(data)%in%event] <- 0
 
+  maxobstime <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max)
+  alreadythere <- sapply(maxobstime-maxfu,identical,0)
+  extrarows <- extrarows[!alreadythere,]
 
-	extrarows[,names(data)%in%time] <- maxfu
-	extrarows[,names(data)%in%event] <- 0
-
-	data <- rbind(data.matrix(data),data.matrix(extrarows))
-	data <- as.data.frame(data)
-	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
-	return(data)
+  data <- rbind(data.matrix(data),data.matrix(extrarows))
+  data <- as.data.frame(data)
+  data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
+  return(data)
 }
 
 # assumes no missing data
@@ -232,7 +236,7 @@ iiw <- function(phfit,data,id,time,first){
 #' legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)
 #' @export
 
-iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,family=gaussian,lagvars,invariant=NULL,maxfu,lagfirst=NA,first){
+iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,family=gaussian,lagvars,invariant=NULL,maxfu,lagfirst,first){
 # id is the id variable
 # lagvars are the variables to be lagged
 # invariant are the variables that are invariant. Only need to be entered if they are in formulaph
@@ -241,7 +245,6 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 
 	# sort the data on id then time
 	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
-
 	weights <- iiw.weights(formulaph, formulanull,data=data,id=id,time=time,event=event,lagvars=lagvars,invariant=invariant,maxfu=maxfu,first=first,lagfirst=lagfirst,frailty=FALSE)
 	data$useweight <- weights$iiw.weight
 	m <- weights$m
@@ -250,6 +253,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 	data$iddup <- data[,names(data)%in%id]
 	useweight <- data$useweight
 	iddup <- data$iddup
+
 	mgee <- geeglm(formulagee,id=iddup,data=data,corstr="independence",weights=useweight,family=family)
 	return(list(geefit=mgee,phfit=m))
 }
@@ -346,10 +350,12 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 	  		m <- frailtyPenal(formula=formulaph,data=datacox[use,], recurrentAG=TRUE, n.knots=6, kappa=10000,cross.validation=TRUE)
 
 		omit <- c("(Intercept)",paste("cluster(",id,")",sep=""))
-
 		Xmat <- model.matrix(terms(formula(m)),data=datacox)
 		columns <- colnames(Xmat)
-		data$iiw.weight[row.names(data)%in%row.names(Xmat)] <- exp(-Xmat[row.names(Xmat)%in%row.names(data),!columns%in%omit]%*%m$coef)
+		Xmat.use <- Xmat[row.names(Xmat)%in%row.names(data),!columns%in%omit]
+		Xmat.use <- array(Xmat.use,dim=c(nrow(Xmat[row.names(Xmat)%in%row.names(data),]),length(columns[!columns%in%omit])))
+#		data$iiw.weight[row.names(data)%in%row.names(Xmat)] <- exp(-Xmat[row.names(Xmat)%in%row.names(data),!columns%in%omit]%*%m$coef)
+		data$iiw.weight[row.names(data)%in%row.names(Xmat)] <- exp(-Xmat.use%*%m$coef)
 
 	if(stabilize){
 		m0 <- frailtyPenal(formula=formulanull,data=datacox[use,],recurrentAG=TRUE,n.knots=6,kappa=10000,cross.validation=TRUE)
@@ -357,8 +363,11 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 
 		Xmat <- model.matrix(terms(formula(m0)),data=datacox)
 		columns <- colnames(Xmat)
-		data$null.weight[row.names(data)%in%row.names(Xmat)] <- exp(-array(Xmat[row.names(Xmat)%in%row.names(data),!columns%in%omit],dim=c(nrow(Xmat[row.names(Xmat)%in%row.names(data),]),ncol(Xmat)-length(omit)))%*%m0$coef)
-		data$useweight <- data$iiw.weight/data$null.weight
+		Xmat.use <- Xmat[row.names(Xmat)%in%row.names(data),!columns%in%omit]
+		Xmat.use <- array(Xmat.use,dim=c(nrow(Xmat[row.names(Xmat)%in%row.names(data),]),length(columns[!columns%in%omit])))
+
+		data$null.weight[row.names(data)%in%row.names(Xmat)] <- exp(-Xmat.use%*%m0$coef)
+				data$useweight <- data$iiw.weight/data$null.weight
 	} else{ data$useweight <- data$iiw.weight; m0 <- NULL}
 
 	}
@@ -551,127 +560,323 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #' Fits a semi-parametric joint model as described by Liang et al. (2009).
 #'
 #' @details
-#' This function is designed to be used in conjunction with multiple outputation and hence assumes no fixed effects in the visit process model. The visit process model thus contains a baseline hazard and a random effect only.
+#' This function fits a semi-parametric joint model as described in Liang (2009), using a frailty model to estimate the parameters in the visit intensity model
 #' @param data data frame containing the variables in the model
 #' @param Yname character string indicating the column containing the outcome variable
 #' @param Xnames vector of character strings indicating the names of the columns of the fixed effects in the outcome regression model
 #' @param Wnames vector of character strings indicating the names of the columns of the random effects in the outcome regression model
+#' @param Znames vector of character strings indicating the names of the columns of the covariates in the visit intensity model
+#' @param formulaobs formula for the observation intensity model
 #' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
+#' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
+#' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the visit intensity model
+#' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
 #' @param baseline An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.
+#' @param n.knots integer giving the number of knots to use in fitting the frailty model. See documentaiton for frailtyPenal for more details
+#' @param kappa positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more detials
 #' @return the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
 #' @references Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.
 #' @export
+#' @examples
+#' # replicate simulation in Liang et al.
+#' library(data.table)
+#' library(survival)
+#' datasimi <- function(id){
+#' X1 <- runif(1,0,1)
+#' X2 <- rbinom(1,1,0.5)
+#' Z <- rgamma(1,1,1)
+#' Z1 <- rnorm(1,Z-1,1)
+#' gamma <- c(0.5,-0.5)
+#' beta <- c(1,-1)
+#' hazard <- Z*exp(X1/2 - X2/2)
+#' C <- runif(1,0,5.8)
+#' t <- 0
+#' tlast <- t
+#' y <- t + X1-X2 + Z1*X2 + rnorm(1,0,1)
+#' wait <- rexp(1,hazard)
+#' while(tlast+wait<C){
+#'   tnew <- tlast+wait
+#'     y <- c(y,tnew + X1-X2 + Z1*X2 + rnorm(1,0,1))
+#'     t <- c(t,tnew)
+#'     tlast <- tnew
+#'     wait <- rexp(1,hazard)
+#'  }
+#'  datai <- list(id=rep(id,length(t)),t=t,y=y,
+#'       X1=rep(X1,length(t)),X2=rep(X2,length(t)),C=rep(C,length(t)))
+#'  return(datai)
+#'  }
+#'  sim1 <- function(it,nsubj){
+#'  data <- lapply(1:nsubj,datasimi)
+#'  data <- as.data.frame(rbindlist(data))
+#'  data$event <- 1
+#'  C <- tapply(data$C,data$id,mean)
+#'  tapply(data$C,data$id,sd)
+#'  maxfu <- cbind(1:nsubj,C)
+#'  maxfu <- as.data.frame(maxfu)
+#'  res <- Liang(data=data, id="id",time="t",Yname="y",
+#'             Xnames=c("X1","X2"),
+#'             Wnames=c("X2"),Znames=c("X1","X2"), formulaobs=Surv(t.lag,t,event)~X1
+#'             + X2+ cluster(id),invariant=c
+#'             ("id","X1","X2"),lagvars="t",lagfirst=NA,maxfu=maxfu,baseline=1,n.knots=6, kappa=10000)
+#'  return(res)
+#'  }
+#'  # change n to 500 to replicate results of Liang et al.
+#'  n <- 10
+#'  s <- lapply(1:n,sim1,nsubj=200)
+#'  smat <- matrix(unlist(s),byrow=TRUE,ncol=2)
+#'  apply(smat,2,mean)
 
-Liang <- function(data,Yname, Xnames, Wnames, id,time, maxfu,baseline ){
 
-  fn <- function(t,tvec) return(which.min(abs(t-tvec)))
+Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,time, invariant=NULL,lagvars=NULL,lagfirst=NULL,maxfu,baseline,n.knots=NULL,kappa=NULL ){
 
-  # redo id variable so ids are numbered using consecutive integers
-  ids <- names(table(data[,names(data)%in%id]))
-  idnum <- array(dim=nrow(data))
-  for(i in 1:nrow(data)) idnum[i] <- (1:length(ids))[data[i,names(data)%in%id]==ids]
-  if(is.data.frame(maxfu)){ maxfu.use <- maxfu; for(i in 1:nrow(maxfu)){ maxfu.use[i,names(maxfu)%in%id] <- (1:length(ids))[maxfu[i,names(maxfu)%in%id]==ids]}}
-  data[,names(data)%in%id] <- idnum
+  if(is.null(formulaobs)){
+    fn <- function(t,tvec) return(which.min(abs(t-tvec)))
 
-  if(is.null(maxfu)){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu.use <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
+    # redo id variable so ids are numbered using consecutive integers
+    ids <- names(table(data[,names(data)%in%id]))
+    idnum <- array(dim=nrow(data))
+    for(i in 1:nrow(data)) idnum[i] <- (1:length(ids))[data[i,names(data)%in%id]==ids]
+    if(is.data.frame(maxfu)){ maxfu.use <- maxfu; for(i in 1:nrow(maxfu)){ maxfu.use[i,names(maxfu)%in%id] <- (1:length(ids))[maxfu[i,names(maxfu)%in%id]==ids]}}
+    data[,names(data)%in%id] <- idnum
+
+    if(is.null(maxfu)){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu.use <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
 
 
-  #	if(identical(ids,as.vector(maxfu[order(maxfu[,1]),1]))==FALSE &identical(as.numeric(ids),as.vector(maxfu[order(maxfu[,1]),1]))==FALSE ) print("Error - ids in maxfu must match ids in 'data'")
+    #	if(identical(ids,as.vector(maxfu[order(maxfu[,1]),1]))==FALSE &identical(as.numeric(ids),as.vector(maxfu[order(maxfu[,1]),1]))==FALSE ) print("Error - ids in maxfu must match ids in 'data'")
 
 
-  n <- length(table(data[,names(data)%in%id]))
-  mi <- tapply(data[,names(data)%in%Yname],data[,names(data)%in%id],length)-baseline
+    n <- length(table(data[,names(data)%in%id]))
+    mi <- tapply(data[,names(data)%in%Yname],data[,names(data)%in%id],length)-baseline
 
-  Xcols <- (1:ncol(data))[is.finite(match(names(data), Xnames))]
-  Wcols <- (1:ncol(data))[is.finite(match(names(data), Wnames))]
-  X <- array(data.matrix(data[,Xcols]),dim=c(nrow(data),length(Xnames)))
-  W <- array(data.matrix(data[,Wcols]),dim=c(nrow(data),length(Wnames)))
+    Xcols <- (1:ncol(data))[is.finite(match(names(data), Xnames))]
+    Wcols <- (1:ncol(data))[is.finite(match(names(data), Wnames))]
+    X <- array(data.matrix(data[,Xcols]),dim=c(nrow(data),length(Xnames)))
+    W <- array(data.matrix(data[,Wcols]),dim=c(nrow(data),length(Wnames)))
 
-  if(length(maxfu)==1) maxfu.use <- cbind(idnum,rep(maxfu,length(idnum)))
-  maxfu.use <- maxfu.use[order(maxfu.use[,1]),]
-  data <- data[order(idnum),]
+    if(length(maxfu)==1) maxfu.use <- cbind(idnum,rep(maxfu,length(idnum)))
+    maxfu.use <- maxfu.use[order(maxfu.use[,1]),]
+    data <- data[order(idnum),]
 
-  if(length(maxfu)==1){
-    Lambdahat <- nrow(data)/n
-    sigmahatsq <- max((sum(mi^2)-sum(mi)-n*Lambdahat^2)/(n*Lambdahat^2),0)
-    Lambdahat <- rep(Lambdahat,n)
-    Ci <- rep(maxfu,n)
+    if(length(maxfu)==1){
+      Lambdahat <- nrow(data)/n
+      sigmahatsq <- max((sum(mi^2)-sum(mi)-n*Lambdahat^2)/(n*Lambdahat^2),0)
+      Lambdahat <- rep(Lambdahat,n)
+      Ci <- rep(maxfu,n)
+    }
+    if(length(maxfu)>1){
+      maxfu.use <- maxfu.use[order(maxfu[,1]),]
+      ids <- as.numeric(names(table(data[,names(data)%in%id])))
+      Ci <- as.vector(maxfu.use[order(maxfu.use[,1]),2])
+      data$event <- 1
+
+      lagcols <- (1:ncol(data))[is.finite(match(names(data), time))]
+      invarcols <- (1:ncol(data))[is.finite(match(names(data), id))]
+
+      datacox <- addcensoredrows(data=data,maxfu=maxfu.use,tinvarcols=invarcols,id=id,time=time,event="event")
+      datacox <- lagfn(datacox,"time",id,time)
+
+      formulanull <- Surv(time.lag,time,event)~1
+      datacox <- datacox[datacox[,names(datacox)%in%time]>0,]
+      b <- basehaz(coxph(formulanull,data=datacox))
+      indexfnnocov <- function(t,time){ return(sum(time<t))}
+      bindex <- sapply(Ci,indexfnnocov,time=b$time)
+      bindex[bindex==0] <- 1
+      Lambdahat <- b$hazard[bindex]
+      sigmahatsq <- max((sum(mi^2)-sum(mi)-sum(Lambdahat^2))/sum(Lambdahat^2),0)
+    }
+
+    mi.Lambdahat <- mi/Lambdahat
+    mi.Lambdahat[mi==0 & Lambdahat==0] <- 1
+
+    Bhat <- array(dim=c(nrow(data),ncol(W)))
+    Bbar <- Bhat
+    Xbar <- array(dim=c(nrow(data),ncol(X)))
+
+    Bmultiplier <- array(dim=nrow(data))
+    Bmultid <- (mi - Lambdahat)*sigmahatsq/(1+Lambdahat*sigmahatsq)
+    ids <- as.numeric(names(table(ids)))
+    for(i in 1:n) Bmultiplier[data[,names(data)%in%id]==ids[i]] <- Bmultid[i]
+    Bhat <- sweep(array(W,dim=c(nrow(data),ncol(W))),1,Bmultiplier,"*")
+
+    Xbar <- array(dim = c(nrow(data),ncol(X)))
+    Bbar <- array(dim = c(nrow(data),ncol(W)))
+
+    #	X0 <- array(apply(X,data[,names(data)%in%id],mean),dim=c(n,ncol(X))
+
+    #	for(row in 1:nrow(data)){
+    #		t <- data[,names(data)%in%time][row]
+    #		Xbar[row,] <- apply(sweep(X0,1,mi*as.numeric(Ci>=t)/Lambdahat,"*"),2,mean)/
+    #	}
+
+    obsnum <- rep(1,nrow(data))
+    for(row in 2:nrow(data)){
+      if(identical(data[row,names(data)%in%id],data[row-1,names(data)%in%id])) obsnum[row] <- obsnum[row-1]+1
+    }
+    firstobs <- (1:nrow(data))[obsnum==1]
+
+    for (row in 1:nrow(data)) {
+      t <- data[,names(data)%in%time][row]
+      #        	absdiff <- abs(data[,names(data)%in%time] - t)
+      #        	min <- tapply(absdiff, data[,names(data)%in%id], min)
+      #        	data.min <- min[data[,names(data)%in%id]]
+      closest <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],fn,t=data[,names(data)%in%time][row])
+      userow <- firstobs + closest-1
+      Xbar[row,] <- apply(sweep(array(X[userow,],dim=c(n,length(Xnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+      Bbar[row,] <- apply(sweep(array(Bhat[userow,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+      #        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min -
+      #            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff ==
+      #            0]])
+    }
+
+    regX <- array((X - Xbar),dim=c(nrow(data),ncol(X)))[data[,names(data)%in%time]>0,]
+    regB <- array(Bhat - Bbar,dim=c(nrow(data),ncol(W)))[data[,names(data)%in%time]>0,]
+    regY <- data[,names(data)%in%Yname][data[,names(data)%in%time]>0]
+    regpredictor <- cbind(regX,regB)
+    if(sigmahatsq>0) beta <- solve(t(regpredictor)%*%regpredictor,t(regpredictor)%*%regY)
+    if(sigmahatsq==0) beta <- solve(t(regX)%*%regX,t(regX)%*%regY)
+
   }
-  if(length(maxfu)>1){
-    maxfu.use <- maxfu.use[order(maxfu[,1]),]
-    ids <- as.numeric(names(table(data[,names(data)%in%id])))
-    Ci <- as.vector(maxfu.use[order(maxfu.use[,1]),2])
-    data$event <- 1
 
+
+  if(!is.null(formulaobs)){
+    fn <- function(t,tvec) return(which.min(abs(t-tvec)))
+
+    # redo id variable so ids are numbered using consecutive integers
+    ids <- names(table(data[,names(data)%in%id]))
+    idnum <- array(dim=nrow(data))
+    for(i in 1:nrow(data)) idnum[i] <- (1:length(ids))[data[i,names(data)%in%id]==ids]
+    if(is.data.frame(maxfu)){ maxfu.use <- maxfu; for(i in 1:nrow(maxfu)){ maxfu.use[i,names(maxfu)%in%id] <- (1:length(ids))[maxfu[i,names(maxfu)%in%id]==ids]}}
+    data[,names(data)%in%id] <- idnum
+
+    if(is.null(maxfu)){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu.use <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
+
+
+    #	if(identical(ids,as.vector(maxfu[order(maxfu[,1]),1]))==FALSE &identical(as.numeric(ids),as.vector(maxfu[order(maxfu[,1]),1]))==FALSE ) print("Error - ids in maxfu must match ids in 'data'")
+
+
+    n <- length(table(data[,names(data)%in%id]))
+    mi <- tapply(data[,names(data)%in%Yname],data[,names(data)%in%id],length)-baseline
+
+    Xcols <- (1:ncol(data))[is.finite(match(names(data), Xnames))]
+    Wcols <- (1:ncol(data))[is.finite(match(names(data), Wnames))]
+    Zcols <- (1:ncol(data))[is.finite(match(names(data), Znames))]
+
+    X <- array(data.matrix(data[,Xcols]),dim=c(nrow(data),length(Xnames)))
+    W <- array(data.matrix(data[,Wcols]),dim=c(nrow(data),length(Wnames)))
+    Z <- array(data.matrix(data[,Zcols]),dim=c(nrow(data),length(Znames)))
+
+    if(length(maxfu)==1) maxfu.use <- cbind(idnum,rep(maxfu,length(idnum)))
+
+    maxfu.use <- maxfu.use[order(maxfu.use[,1]),]
+    data <- data[order(idnum),]
+
+    if(length(maxfu)==1){
+      Ci <- rep(maxfu,n)
+
+      maxfu.use <- maxfu.use[order(maxfu.use[,1]),]
+      ids <- as.numeric(names(table(data[,names(data)%in%id])))
+      data$event <- 1
+    }
+    if(length(maxfu)>1){
+      maxfu.use <- maxfu.use[order(maxfu[,1]),]
+      ids <- as.numeric(names(table(data[,names(data)%in%id])))
+      Ci <- as.vector(maxfu.use[order(maxfu.use[,1]),2])
+      data$event <- 1
+    }
     lagcols <- (1:ncol(data))[is.finite(match(names(data), time))]
-    invarcols <- (1:ncol(data))[is.finite(match(names(data), id))]
+    #    invarcols <- (1:ncol(data))[is.finite(match(names(data), id))]
 
-    datacox <- addcensoredrows(data=data,maxfu=maxfu.use,tinvarcols=invarcols,id=id,time=time,event="event")
-    datacox <- lagfn(datacox,"time",id,time)
 
-    formulanull <- Surv(time.lag,time,event)~1
-    datacox <- datacox[datacox[,names(datacox)%in%time]>0,]
-    b <- basehaz(coxph(formulanull,data=datacox))
-    indexfn <- function(t,time){ return(sum(time<t))}
-    bindex <- sapply(Ci,indexfn,time=b$time)
-    bindex[bindex==0] <- 1
-    Lambdahat <- b$hazard[bindex]
-    sigmahatsq <- max((sum(mi^2)-sum(mi)-sum(Lambdahat^2))/sum(Lambdahat^2),0)
+    datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invariant,id=id,time=time,event="event")
+    datacox <- lagfn(datacox,lagvars,id,time,lagfirst=lagfirst)
+
+    formulacov <- Surv(time.lag,time,event)~Znames + cluster(id)
+    formulacox <- Surv(time.lag,time,event)~Znames + (1|id)
+    row.names(datacox)[datacox$event==1] <- row.names(data)
+    use <- (1:nrow(datacox))[(!is.na(datacox[,names(datacox)%in%paste(time,".lag",sep="")]))]
+    datacoxuse <- datacox[use,]
+    use <- (1:nrow(datacoxuse))[datacoxuse[,names(datacoxuse)%in%time]-datacoxuse[,names(datacoxuse)%in%paste(time,".lag",sep="")]>0]
+    datacoxuse <- datacoxuse[use,]
+    row.names(datacoxuse) <- 1:nrow(datacoxuse)
+    mcov <- frailtyPenal(formula=formulaobs,data=datacoxuse, recurrentAG=TRUE, n.knots=n.knots,kappa=kappa,cross.validation=TRUE,print.times=FALSE)
+
+    omit <- c("(Intercept)",paste("cluster(",id,")",sep=""))
+    #	Zmat <- model.matrix(terms(formula(mcov)),data=datacox)
+
+    #	columns <- colnames(Zmat)
+    #	if(dim(Zmat)[2]>3){ data$lp[row.names(data)%in%row.names(Zmat)] <- exp(-Zmat[row.names(Zmat)%in%row.names(data),!columns%in%omit]%*%mcov$coef)} else{
+    #	  data$lp[row.names(data)%in%row.names(Zmat)] <- exp(-Zmat[row.names(Zmat)%in%row.names(data),!columns%in%omit]*mcov$coef)
+    #	}
+    data$lp <- Z%*%mcov$coef
+
+
+
+    indexfn <- function(x) return(sum(as.numeric(mcov$x<=x)))
+    indexfns <- function(x) return(sapply(x,indexfn))
+    Hazard0 <- -log(mcov$surv[,1,1])[indexfns(Ci)]
+    Hazard0[Hazard0==0] <- -log(mcov$surv[,1,1])[2]
+    lp <- tapply(data$lp,data[,names(data)%in%id],mean,na.rm=TRUE)
+    Lambdahat <- Hazard0*exp(lp)
+
+    sigmahatsq <- mcov$theta
+       print(paste("sigmahatsq=",sigmahatsq,sep=""))
+
+    #  mi.Lambdahat <- mi/Lambdahat
+    mi.Lambdahat <- mi/Hazard0
+    mi.Lambdahat[mi==0 & Lambdahat==0] <- 1
+
+    Bhat <- array(dim=c(nrow(data),ncol(W)))
+    Bbar <- Bhat
+    Xbar <- array(dim=c(nrow(data),ncol(X)))
+
+    Bmultiplier <- array(dim=nrow(data))
+    Bmultid <- (mi - Lambdahat)*sigmahatsq/(1+Lambdahat*sigmahatsq)
+    ids <- as.numeric(names(table(ids)))
+    for(i in 1:n) Bmultiplier[data[,names(data)%in%id]==ids[i]] <- Bmultid[i]
+    Bhat <- sweep(array(W,dim=c(nrow(data),ncol(W))),1,Bmultiplier,"*")
+
+    Xbar <- array(dim = c(nrow(data),ncol(X)))
+    Bbar <- array(dim = c(nrow(data),ncol(W)))
+
+    #	X0 <- array(apply(X,data[,names(data)%in%id],mean),dim=c(n,ncol(X))
+
+    #	for(row in 1:nrow(data)){
+    #		t <- data[,names(data)%in%time][row]
+    #		Xbar[row,] <- apply(sweep(X0,1,mi*as.numeric(Ci>=t)/Lambdahat,"*"),2,mean)/
+    #	}
+
+    obsnum <- rep(1,nrow(data))
+    for(row in 2:nrow(data)){
+      if(identical(data[row,names(data)%in%id],data[row-1,names(data)%in%id])) obsnum[row] <- obsnum[row-1]+1
+    }
+    firstobs <- (1:nrow(data))[obsnum==1]
+
+    for (row in 1:nrow(data)) {
+      t <- data[,names(data)%in%time][row]
+      #        	absdiff <- abs(data[,names(data)%in%time] - t)
+      #        	min <- tapply(absdiff, data[,names(data)%in%id], min)
+      #        	data.min <- min[data[,names(data)%in%id]]
+      closest <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],fn,t=data[,names(data)%in%time][row])
+      userow <- firstobs + closest-1
+      Xbar[row,] <- apply(sweep(array(X[userow,],dim=c(n,length(Xnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+      Bbar[row,] <- apply(sweep(array(Bhat[userow,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+      #        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min -
+      #            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff ==
+      #            0]])
+    }
+
+    regX <- array((X - Xbar),dim=c(nrow(data),ncol(X)))[data[,names(data)%in%time]>0,]
+    regB <- array(Bhat - Bbar,dim=c(nrow(data),ncol(W)))[data[,names(data)%in%time]>0,]
+    regY <- data[,names(data)%in%Yname][data[,names(data)%in%time]>0]
+    regpredictor <- cbind(regX,regB)
+    if(sigmahatsq>0) beta <- solve(t(regpredictor)%*%regpredictor,t(regpredictor)%*%regY)
+    if(sigmahatsq==0) beta <- solve(t(regX)%*%regX,t(regX)%*%regY)
   }
-
-  mi.Lambdahat <- mi/Lambdahat
-  mi.Lambdahat[mi==0 & Lambdahat==0] <- 1
-
-  Bhat <- array(dim=c(nrow(data),ncol(W)))
-  Bbar <- Bhat
-  Xbar <- array(dim=c(nrow(data),ncol(X)))
-
-  Bmultiplier <- array(dim=nrow(data))
-  Bmultid <- (mi - Lambdahat)*sigmahatsq/(1+Lambdahat*sigmahatsq)
-  ids <- as.numeric(names(table(ids)))
-  for(i in 1:n) Bmultiplier[data[,names(data)%in%id]==ids[i]] <- Bmultid[i]
-  Bhat <- sweep(array(W,dim=c(nrow(data),ncol(W))),1,Bmultiplier,"*")
-
-  Xbar <- array(dim = c(nrow(data),ncol(X)))
-  Bbar <- array(dim = c(nrow(data),ncol(W)))
-
-  #	X0 <- array(apply(X,data[,names(data)%in%id],mean),dim=c(n,ncol(X))
-
-  #	for(row in 1:nrow(data)){
-  #		t <- data[,names(data)%in%time][row]
-  #		Xbar[row,] <- apply(sweep(X0,1,mi*as.numeric(Ci>=t)/Lambdahat,"*"),2,mean)/
-  #	}
-
-  obsnum <- rep(1,nrow(data))
-  for(row in 2:nrow(data)){
-    if(identical(data[row,names(data)%in%id],data[row-1,names(data)%in%id])) obsnum[row] <- obsnum[row-1]+1
-  }
-  firstobs <- (1:nrow(data))[obsnum==1]
-
-  for (row in 1:nrow(data)) {
-    t <- data[,names(data)%in%time][row]
-    #        	absdiff <- abs(data[,names(data)%in%time] - t)
-    #        	min <- tapply(absdiff, data[,names(data)%in%id], min)
-    #        	data.min <- min[data[,names(data)%in%id]]
-    closest <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],fn,t=data[,names(data)%in%time][row])
-    userow <- firstobs + closest-1
-    Xbar[row,] <- apply(sweep(array(X[userow,],dim=c(n,length(Xnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
-    Bbar[row,] <- apply(sweep(array(Bhat[userow,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
-    #        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min -
-    #            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff ==
-    #            0]])
-  }
-
-  regX <- array((X - Xbar),dim=c(nrow(data),ncol(X)))[data[,names(data)%in%time]>0,]
-  regB <- array(Bhat - Bbar,dim=c(nrow(data),ncol(W)))[data[,names(data)%in%time]>0,]
-  regY <- data[,names(data)%in%Yname][data[,names(data)%in%time]>0]
-  regpredictor <- cbind(regX,regB)
-  if(sigmahatsq>0) beta <- solve(t(regpredictor)%*%regpredictor,t(regpredictor)%*%regY)
-  if(sigmahatsq==0) beta <- solve(t(regX)%*%regX,t(regX)%*%regY)
   return(beta[1:ncol(X)])
 }
+
 
 
 #' Create an abacus plot
