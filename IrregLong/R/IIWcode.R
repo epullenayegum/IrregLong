@@ -516,8 +516,9 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' data <- data[data$time<16*24,]
 #' i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag +
 #'          dose.lag*(I(conc.lag>0) + conc.lag) +
-#' cluster(Subject),id="id",time="time",event="event",data=data,
-#' invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
+#'          cluster(Subject),id="id",time="time",event="event",data=data,
+#'          invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,
+#'          lagfirst=0,first=TRUE)
 #' wt <- i$iiw.weight
 #' wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
 #' data$wt <- wt
@@ -529,9 +530,9 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #'
 #' mo(20,reg,data,wt,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
 #' # On outputation, the dataset contains small numbers of observations per subject
-#' # and hence the GEE sandwich variance estimate underestimates variance; this is why the
-#' # outputation-based variance estimate fails. This can be remedied by using a sandwich variance
-#' # error correction (e.g. Fay-Graubard, Mancl-DeRouen).
+#' # and hence the GEE sandwich variance estimate underestimates variance; this is why
+#' # the outputation-based variance estimate fails. This can be remedied by using a
+#' # sandwich variance error correction (e.g. Fay-Graubard, Mancl-DeRouen).
 #' @export
 
 
