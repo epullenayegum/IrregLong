@@ -88,7 +88,8 @@ while(tlast+wait<C){
             Xnames=c("X1","X2"),
             Wnames=c("X2"),Znames=c("X1","X2"), formulaobs=Surv(t.lag,t,event)~X1
             + X2+ cluster(id),invariant=c
-            ("id","X1","X2"),lagvars="t",lagfirst=NA,maxfu=maxfu,baseline=1,n.knots=6, kappa=10000)
+            ("id","X1","X2"),lagvars="t",lagfirst=NA,maxfu=maxfu,
+            baseline=1,n.knots=6, kappa=10000)
  return(res)
  }
  # change n to 500 to replicate results of Liang et al.
