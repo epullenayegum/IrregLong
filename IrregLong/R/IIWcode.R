@@ -514,7 +514,8 @@ outputanalfn <- function(fn,data,weights,singleobs,id,time,keep.first,...){
 #' data <- data[data$event==1,]
 #' data$id <- as.numeric(data$Subject)
 #' data <- data[data$time<16*24,]
-#' i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag + dose.lag*(I(conc.lag>0) + conc.lag) +
+#' i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag +
+#'          dose.lag*(I(conc.lag>0) + conc.lag) +
 #' cluster(Subject),id="id",time="time",event="event",data=data,
 #' invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
 #' wt <- i$iiw.weight
@@ -619,7 +620,8 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #'             Xnames=c("X1","X2"),
 #'             Wnames=c("X2"),Znames=c("X1","X2"), formulaobs=Surv(t.lag,t,event)~X1
 #'             + X2+ cluster(id),invariant=c
-#'             ("id","X1","X2"),lagvars="t",lagfirst=NA,maxfu=maxfu,baseline=1,n.knots=6, kappa=10000)
+#'             ("id","X1","X2"),lagvars="t",lagfirst=NA,maxfu=maxfu,
+#'             baseline=1,n.knots=6, kappa=10000)
 #'  return(res)
 #'  }
 #'  # change n to 500 to replicate results of Liang et al.

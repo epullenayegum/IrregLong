@@ -104,8 +104,8 @@ i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + dose.
       cluster(Subject),id="Subject",time="time",event="event",data=data,
       invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + dose.lag + I(dose.lag*Wt^(-1)) +
-      cluster(Subject),id="Subject",time="time",event="event",data=data,
+i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + dose.lag +          I(dose.lag*Wt^(-1)) + cluster(Subject),
+                 id="Subject",time="time",event="event",data=data,
       invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + sqrt(dose.lag/Wt) +
@@ -263,7 +263,8 @@ where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially cor
 ```{r,results='hide',message=FALSE}
 
 Liangmo <- function(data,Yname,Xnames,Wnames,maxfu,baseline){
- x <- Liang(data=data,Yname=Yname,Xnames=Xnames,Wnames=Wnames,id="id",time="time",maxfu=maxfu,baseline=baseline); print(x); return(x)
+ x <- Liang(data=data,Yname=Yname,Xnames=Xnames,Wnames=Wnames,id="id",time="time",
+            maxfu=maxfu,baseline=baseline); print(x); return(x)
 }
 data$Intercept <- 1
 data$time3 <- (data$time)^3
@@ -272,7 +273,11 @@ data$ApgarInd.time <- as.numeric(data$ApgarInd)*data$time/24
 data$ApgarInd.time3 <- as.numeric(data$ApgarInd)*((data$time/24)^3)
 
 set.seed(301031)
-ifrailty <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + I(log(1+dose.lag/Wt)) + I(log(1+dose.lag/Wt)):conc.lag +cluster(id),id="id",time="time",event="event",data=data,      invariant=c("id","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE,frailty=TRUE)
+ifrailty <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag +
+                      I(log(1+dose.lag/Wt)) + I(log(1+dose.lag/Wt)):conc.lag    
+                      +cluster(id),id="id",time="time",event="event",data=data,     
+                      invariant=c("id","Wt"),lagvars=c("time","conc"),maxfu=16*24,
+                      lagfirst=c(0,0), first=FALSE,frailty=TRUE)
 
 wt <- ifrailty$iiw.weight
 wt[wt>quantile(ifrailty$iiw.weight,0.95)] <- quantile(ifrailty$iiw.weight,0.95)
