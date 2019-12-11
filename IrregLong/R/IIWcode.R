@@ -33,7 +33,7 @@ lagby1.1var <- function(x,id,time,lagfirst=NA){
 
 
 
-# data must be ordered by id and time. ids should be consecutively numbered numeric variables (1,2,3,...) and need to start at 1
+# data must be ordered by id and time.
 # id variable should be called id, time variable should be called time
 
 #' Create lagged versions the variables in data
