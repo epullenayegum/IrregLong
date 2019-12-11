@@ -13,16 +13,25 @@ lagby1.1person <- function(x){
 
 
 lagby1.1var <- function(x,id,time,lagfirst=NA){
-	if(length(x)>1){
-		lagx <- c(NA,x[-length(x)])
-		# identify first observation for each subject
-		tmin <- tapply(time,id,min)
-		tminx <- tmin[id]
-		lagx[time==tminx] <- lagfirst
-		return(lagx)
-	}
-	else return(NA)
+  if(length(x)>1){
+    lagx <- c(lagfirst,x[-length(x)])
+    rows <- 1:length(x)
+
+    data <- cbind(rows,x,id,time,lagx)
+    data <- as.data.frame(data)
+    names(data) <- c("rows","x","id","time","lagx")
+    DT <- data.table(data)
+    setkey(DT, id)
+    dt1 <- data.frame(DT[data.table(unique(id)), mult = "first"])
+    dt1$lagx <- lagfirst
+
+    lagx[dt1$rows] <- lagfirst
+    return(lagx)
+  }
+  else return(NA)
 }
+
+
 
 # data must be ordered by id and time. ids should be consecutively numbered numeric variables (1,2,3,...) and need to start at 1
 # id variable should be called id, time variable should be called time
