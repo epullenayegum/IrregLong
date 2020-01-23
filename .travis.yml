@@ -3,7 +3,7 @@
 language: R
 r:
   - release
-  - devel
+
 sudo: false
 
 os:
