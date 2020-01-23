@@ -897,7 +897,7 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
 #'Creates an abacus plot, depicting visits per subject over time
 #'
 #' @details This function creates a plot for n randomly sampled individuals from the supplied dataset, with one row per subject and one point per visit. This can be useful for visualising the extent of irregularity in the visit process. For example, with perfect repeated measures data (i.e., no irregularity), the points will line up vertically. With greater irregularity, the points will be randomly scattered over time.
-#' @param n the number of sujects to randomly sample. Subjects are sampled without replacement and therefore n must be smaller than the total number of subjects in the dataset
+#' @param n the number of subjects to randomly sample. Subjects are sampled without replacement and therefore n must be smaller than the total number of subjects in the dataset
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param id character string indicating which column of the data identifies subjects
 #' @param data data frame containing the variables in the model
