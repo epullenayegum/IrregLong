@@ -4,9 +4,20 @@
 \alias{iiw.weights}
 \title{Compute inverse-intensity weights.}
 \usage{
-iiw.weights(formulaph, formulanull = NULL, data, id, time, event,
-  lagvars, invariant = NULL, maxfu, lagfirst = lagfirst, first,
-  frailty = FALSE)
+iiw.weights(
+  formulaph,
+  formulanull = NULL,
+  data,
+  id,
+  time,
+  event,
+  lagvars,
+  invariant = NULL,
+  maxfu,
+  lagfirst = lagfirst,
+  first,
+  frailty = FALSE
+)
 }
 \arguments{
 \item{formulaph}{the formula for the proportional hazards model for the visit intensity that will be used to derive inverse-intensity weights. The formula should usually use the counting process format (i.e. Surv(start,stop,event)). If a frailty model is used, the cluster(id) term should appear before other covariates}
@@ -77,8 +88,12 @@ summary(miiwgee$geefit)
 \item Buzkova P, Lumley T. Longitudinal data analysis for generalized linear models with follow-up dependent on outcome-related variables. The Canadian Journal of Statistics 2007; 35:485-500.}
 }
 \seealso{
-Other iiw: \code{\link{iiwgee}}, \code{\link{iiw}}
+Other iiw: 
+\code{\link{iiwgee}()},
+\code{\link{iiw}()}
 
-Other iiw: \code{\link{iiwgee}}, \code{\link{iiw}}
+Other iiw: 
+\code{\link{iiwgee}()},
+\code{\link{iiw}()}
 }
 \concept{iiw}

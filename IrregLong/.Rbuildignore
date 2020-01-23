@@ -5,3 +5,4 @@
 .travis\.yml$
 IrregLong.Rproj
 cran_comments.md
+^NEWS\.md$

@@ -47,6 +47,8 @@ data$weight <- iiw(mph,data,"id","time",TRUE)
 head(data)
 }
 \seealso{
-Other iiw: \code{\link{iiw.weights}}, \code{\link{iiwgee}}
+Other iiw: 
+\code{\link{iiw.weights}()},
+\code{\link{iiwgee}()}
 }
 \concept{iiw}

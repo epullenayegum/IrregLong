@@ -585,13 +585,14 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
 #' @param baseline An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.
-#' @param n.knots integer giving the number of knots to use in fitting the frailty model. See documentaiton for frailtyPenal for more details
-#' @param kappa positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more detials
+#' @param n.knots integer giving the number of knots to use in fitting the frailty model. See documentation for frailtyPenal for more details
+#' @param kappa positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more details
 #' @return the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
 #' @references Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.
 #' @export
 #' @examples
 #' # replicate simulation in Liang et al.
+#' \dontrun{
 #' library(data.table)
 #' library(survival)
 #' datasimi <- function(id){
@@ -639,6 +640,7 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #'  s <- lapply(1:n,sim1,nsubj=200)
 #'  smat <- matrix(unlist(s),byrow=TRUE,ncol=2)
 #'  apply(smat,2,mean)
+#'  }
 
 
 Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,time, invariant=NULL,lagvars=NULL,lagfirst=NULL,maxfu,baseline,n.knots=NULL,kappa=NULL ){
@@ -894,7 +896,7 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
 #' Create an abacus plot
 #'Creates an abacus plot, depicting visits per subject over time
 #'
-#' @details This function creates a plot for n randomly sampled individuals from the supplied dataset, with one row per subject and one point per visit. This can be useful for visualising the extent of irregularity in the visit process. For example, with perfect repeated measures data (i.e., no irregulrity), the points will line up vertically. With greater irregularity, the points will be randomly scattered over time.
+#' @details This function creates a plot for n randomly sampled individuals from the supplied dataset, with one row per subject and one point per visit. This can be useful for visualising the extent of irregularity in the visit process. For example, with perfect repeated measures data (i.e., no irregularity), the points will line up vertically. With greater irregularity, the points will be randomly scattered over time.
 #' @param n the number of sujects to randomly sample. Subjects are sampled without replacement and therefore n must be smaller than the total number of subjects in the dataset
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param id character string indicating which column of the data identifies subjects

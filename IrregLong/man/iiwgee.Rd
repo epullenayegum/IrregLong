@@ -4,8 +4,21 @@
 \alias{iiwgee}
 \title{Fit an inverse-intensity weighted GEE.}
 \usage{
-iiwgee(formulagee, formulaph, formulanull = NULL, data, id, time, event,
-  family = gaussian, lagvars, invariant = NULL, maxfu, lagfirst, first)
+iiwgee(
+  formulagee,
+  formulaph,
+  formulanull = NULL,
+  data,
+  id,
+  time,
+  event,
+  family = gaussian,
+  lagvars,
+  invariant = NULL,
+  maxfu,
+  lagfirst,
+  first
+)
 }
 \arguments{
 \item{formulagee}{the formula for the GEE model to be fit. The syntax used is the same as in geeglm}
@@ -83,6 +96,8 @@ legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n"
 \item Buzkova P, Lumley T. Longitudinal data analysis for generalized linear models with follow-up dependent on outcome-related variables. The Canadian Journal of Statistics 2007; 35:485-500.}
 }
 \seealso{
-Other iiw: \code{\link{iiw.weights}}, \code{\link{iiw}}
+Other iiw: 
+\code{\link{iiw.weights}()},
+\code{\link{iiw}()}
 }
 \concept{iiw}

@@ -5,8 +5,18 @@
 \title{Create an abacus plot
 Creates an abacus plot, depicting visits per subject over time}
 \usage{
-abacus.plot(n, time, id, data, tmin, tmax, xlab.abacus = "Time",
-  ylab.abacus = "Subject", pch.abacus = 16, col.abacus = 1)
+abacus.plot(
+  n,
+  time,
+  id,
+  data,
+  tmin,
+  tmax,
+  xlab.abacus = "Time",
+  ylab.abacus = "Subject",
+  pch.abacus = 16,
+  col.abacus = 1
+)
 }
 \arguments{
 \item{n}{the number of sujects to randomly sample. Subjects are sampled without replacement and therefore n must be smaller than the total number of subjects in the dataset}
@@ -37,7 +47,7 @@ Create an abacus plot
 Creates an abacus plot, depicting visits per subject over time
 }
 \details{
-This function creates a plot for n randomly sampled individuals from the supplied dataset, with one row per subject and one point per visit. This can be useful for visualising the extent of irregularity in the visit process. For example, with perfect repeated measures data (i.e., no irregulrity), the points will line up vertically. With greater irregularity, the points will be randomly scattered over time.
+This function creates a plot for n randomly sampled individuals from the supplied dataset, with one row per subject and one point per visit. This can be useful for visualising the extent of irregularity in the visit process. For example, with perfect repeated measures data (i.e., no irregularity), the points will line up vertically. With greater irregularity, the points will be randomly scattered over time.
 }
 \examples{
 library(MEMSS)

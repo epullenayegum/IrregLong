@@ -4,9 +4,23 @@
 \alias{Liang}
 \title{Fit a semi-parametric joint model}
 \usage{
-Liang(data, Yname, Xnames, Wnames, Znames = NULL, formulaobs = NULL,
-  id, time, invariant = NULL, lagvars = NULL, lagfirst = NULL, maxfu,
-  baseline, n.knots = NULL, kappa = NULL)
+Liang(
+  data,
+  Yname,
+  Xnames,
+  Wnames,
+  Znames = NULL,
+  formulaobs = NULL,
+  id,
+  time,
+  invariant = NULL,
+  lagvars = NULL,
+  lagfirst = NULL,
+  maxfu,
+  baseline,
+  n.knots = NULL,
+  kappa = NULL
+)
 }
 \arguments{
 \item{data}{data frame containing the variables in the model}
@@ -35,9 +49,9 @@ Liang(data, Yname, Xnames, Wnames, Znames = NULL, formulaobs = NULL,
 
 \item{baseline}{An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.}
 
-\item{n.knots}{integer giving the number of knots to use in fitting the frailty model. See documentaiton for frailtyPenal for more details}
+\item{n.knots}{integer giving the number of knots to use in fitting the frailty model. See documentation for frailtyPenal for more details}
 
-\item{kappa}{positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more detials}
+\item{kappa}{positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more details}
 }
 \value{
 the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
@@ -50,6 +64,7 @@ This function fits a semi-parametric joint model as described in Liang (2009), u
 }
 \examples{
 # replicate simulation in Liang et al.
+\dontrun{
 library(data.table)
 library(survival)
 datasimi <- function(id){
@@ -97,6 +112,7 @@ while(tlast+wait<C){
  s <- lapply(1:n,sim1,nsubj=200)
  smat <- matrix(unlist(s),byrow=TRUE,ncol=2)
  apply(smat,2,mean)
+ }
 }
 \references{
 Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.

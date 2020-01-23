@@ -62,6 +62,7 @@ head(data.output3)
 \item Pullenayegum EM. Multiple outputation for the analysis of longitudinal data subject to irregular observation. Statistics in Medicine (in press).}
 }
 \seealso{
-Other mo: \code{\link{mo}}
+Other mo: 
+\code{\link{mo}()}
 }
 \concept{mo}

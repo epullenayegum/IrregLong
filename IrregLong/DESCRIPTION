@@ -9,7 +9,7 @@ Description: Analysis of longitudinal data for which the times of observation ar
 Depends: R (>= 2.10)
 Imports: survival, geepack, frailtypack, data.table 
 License: GPL-3
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2
 Suggests: knitr,
     rmarkdown,
     nlme,

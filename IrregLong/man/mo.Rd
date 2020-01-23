@@ -4,8 +4,18 @@
 \alias{mo}
 \title{Multiple outputation for longitudinal data subject to irregular observation.}
 \usage{
-mo(noutput, fn, data, weights, singleobs, id, time, keep.first,
-  var = TRUE, ...)
+mo(
+  noutput,
+  fn,
+  data,
+  weights,
+  singleobs,
+  id,
+  time,
+  keep.first,
+  var = TRUE,
+  ...
+)
 }
 \arguments{
 \item{noutput}{the number of outputations to be used}
@@ -76,6 +86,7 @@ mo(20,reg,data,wt,singleobs=FALSE,id="id",time="time",keep.first=FALSE)
 \item Pullenayegum EM. Multiple outputation for the analysis of longitudinal data subject to irregular observation. Statistics in Medicine (in press)}.
 }
 \seealso{
-Other mo: \code{\link{outputation}}
+Other mo: 
+\code{\link{outputation}()}
 }
 \concept{mo}
