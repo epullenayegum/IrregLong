@@ -749,7 +749,7 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
     regY <- data[,names(data)%in%Yname][data[,names(data)%in%time]>0]
     regpredictor <- cbind(regX,regB)
     if(sigmahatsq>0) beta <- solve(t(regpredictor)%*%regpredictor,t(regpredictor)%*%regY)
-    if(sigmahatsq==0) beta <- solve(t(regX)%*%regX,t(regX)%*%regY)
+    if(sigmahatsq==0) beta <- c(solve(t(regX)%*%regX,t(regX)%*%regY),NA)
 
   }
 
@@ -886,9 +886,9 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
     regY <- data[,names(data)%in%Yname][data[,names(data)%in%time]>0]
     regpredictor <- cbind(regX,regB)
     if(sigmahatsq>0) beta <- solve(t(regpredictor)%*%regpredictor,t(regpredictor)%*%regY)
-    if(sigmahatsq==0) beta <- solve(t(regX)%*%regX,t(regX)%*%regY)
+    if(sigmahatsq==0) beta <- c(solve(t(regX)%*%regX,t(regX)%*%regY),NA)
   }
-  return(beta[1:ncol(X)])
+  return(c(beta,sigmahatsq))
 }
 
 

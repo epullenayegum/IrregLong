@@ -19,7 +19,7 @@ abacus.plot(
 )
 }
 \arguments{
-\item{n}{the number of sujects to randomly sample. Subjects are sampled without replacement and therefore n must be smaller than the total number of subjects in the dataset}
+\item{n}{the number of subjects to randomly sample. Subjects are sampled without replacement and therefore n must be smaller than the total number of subjects in the dataset}
 
 \item{time}{character string indicating which column of the data contains the time at which the visit occurred}
 

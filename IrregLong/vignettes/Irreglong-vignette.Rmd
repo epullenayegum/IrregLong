@@ -259,7 +259,7 @@ We consider the same example as before, now examining whether the concentration 
 \[conc_i(t)=\beta_0(t) + \beta_1I(Apgar_i<5) + \beta_2I(Apgar\geq 5)t^3 + \beta_3I(Apgar\geq 5)log(t) +  \nu_{i1} + \epsilon_i(t),\]
 with visit process model given by
 \[\lambda_i(t)=\nu_{i2}\lambda_0(t)\exp(I(conc_i(T_{iN_i(t^-)})>0)\gamma_1 + conc_i(T_{iN_i(t^-)})\gamma_2), \]
-where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially correlated. Note that when calculating the weights used for outputation, the ```frailty=TRUE``` option should be used in visit intensity calculation because the lagged concentration is an internal covariate that is potentially correlated with the frailty variable, and the Cox model is non-collapsible. A difficulty with using multiple outputation is that it reduces the size of the dataset available for each analysis, which can result in singularities in regression models. In this example, some outputted datasets have no subjects with an Apgar score less than 5, and hence the regression model cannot be fitted. A pragmatic work-around is to truncate the weights - this introduces some bias but results in a higher proportion of observations being retained at each outputation and consequently a smaller chance of singularities. In this example we truncate at the $95^{th}$ percentile. For this analysis, time is transformed to days rather than hours to avoid computational problems with the Liang function
+where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially correlated with $E(\nu_{i1}\mid\nu_{i2})=\theta(\nu_{i2}-1)$ for some $\theta$. Note that when calculating the weights used for outputation, the ```frailty=TRUE``` option should be used in visit intensity calculation because the lagged concentration is an internal covariate that is potentially correlated with the frailty variable, and the Cox model is non-collapsible. A difficulty with using multiple outputation is that it reduces the size of the dataset available for each analysis, which can result in singularities in regression models. In this example, some outputted datasets have no subjects with an Apgar score less than 5, and hence the regression model cannot be fitted. A pragmatic work-around is to truncate the weights - this introduces some bias but results in a higher proportion of observations being retained at each outputation and consequently a smaller chance of singularities. In this example we truncate at the $95^{th}$ percentile. For this analysis, time is transformed to days rather than hours to avoid computational problems with the Liang function
 ```{r,results='hide',message=FALSE}
 
 Liangmo <- function(data,Yname,Xnames,Wnames,maxfu,baseline){
@@ -292,21 +292,6 @@ m.moLiang$est
 ```{r}
 m.moLiang$est
 ```
-For comparison, we also compute the estimate assuming that the measurement and outcome processes are independent given the last observed concentration, and plot the two curves. 
-```{r fig4, fig.height=6, fig.width=6, fig.align="center"}
-miiwgee <- geeglm(conc ~ ApgarInd *(time + time3),id=id,weight=wt,data=data)
-
-summary(miiwgee)
-time <- (1:200)
-gp0 <- cbind(rep(1,200),time,time^3)%*%miiwgee$coefficients[c(1,3:4)]
-gp1 <- cbind(rep(1,200),time,time^3)%*%(miiwgee$coefficients[c(2,5:6)] + miiwgee$coefficients[c(1,3:4)])
-diffLiang <- cbind(rep(1,200),time/24,(time/24)^3)%*%(m.moLiang$est)
-plot(time,gp1-gp0,xlab="Time",ylab="Difference in means",type="l",ylim=c(min(gp1-gp0,diffLiang),max(gp1-gp0,diffLiang)))
-lines(time,diffLiang,col=2)
-legend(10,-3,legend=c("IIW estimate","MO + Liang estimate"),lty=1,col=1:2,bty="n")
-
-```
-
-Note that the Liang method does not provide theoretical standard errors, so these are usually estimated through bootstrapping.
+The first three coefficients represent for the Apgar score, its interaction with time, and its interaction with time^3 respectively, while the fourth coefficient is the estimated value of $\theta$ and the final entry is the estimated variance of the frailty variable in the visit process model. Since in this case the estimated frailty is zero, we can conclude that the Liang model is not needed.
 
 # References
