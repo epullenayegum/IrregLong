@@ -19,7 +19,10 @@ Liang(
   maxfu,
   baseline,
   n.knots = NULL,
-  kappa = NULL
+  kappa = NULL,
+  Xfn = NULL,
+  Wfn = NULL,
+  ...
 )
 }
 \arguments{
@@ -52,6 +55,12 @@ Liang(
 \item{n.knots}{integer giving the number of knots to use in fitting the frailty model. See documentation for frailtyPenal for more details}
 
 \item{kappa}{positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more details}
+
+\item{Xfn}{A function that takes as its first argument the subject identifier and has time as its second argument, and returns the value of X for the specified subject at the specified time.}
+
+\item{Wfn}{A function that takes as its first argument the subject identifier and has time as its second argument, and returns the value of W for the specified subject at the specified time}
+
+\item{...}{other arguments to Xfn and Yfn}
 }
 \value{
 the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
@@ -61,6 +70,8 @@ Fits a semi-parametric joint model as described by Liang et al. (2009).
 }
 \details{
 This function fits a semi-parametric joint model as described in Liang (2009), using a frailty model to estimate the parameters in the visit intensity model
+
+The Liang method requires a value of X and W for evey time over the observation period. If Xfn is left as NULL, then the Liang function will use, for each subject and for each time t, the values of X and W at the observation time closest to t.
 }
 \examples{
 # replicate simulation in Liang et al.

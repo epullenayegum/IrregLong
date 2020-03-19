@@ -585,8 +585,12 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
 #' @param baseline An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.
+#' @param Xfn A function that takes as its first argument the subject identifier and has time as its second argument, and returns the value of X for the specified subject at the specified time.
+#' @param Wfn A function that takes as its first argument the subject identifier and has time as its second argument, and returns the value of W for the specified subject at the specified time
 #' @param n.knots integer giving the number of knots to use in fitting the frailty model. See documentation for frailtyPenal for more details
 #' @param kappa positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more details
+#' @param ... other arguments to Xfn and Yfn
+#' @details The Liang method requires a value of X and W for evey time over the observation period. If Xfn is left as NULL, then the Liang function will use, for each subject and for each time t, the values of X and W at the observation time closest to t.
 #' @return the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
 #' @references Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.
 #' @export
@@ -643,7 +647,7 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #'  }
 
 
-Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,time, invariant=NULL,lagvars=NULL,lagfirst=NULL,maxfu,baseline,n.knots=NULL,kappa=NULL ){
+Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,time, invariant=NULL,lagvars=NULL,lagfirst=NULL,maxfu,baseline,n.knots=NULL,kappa=NULL,Xfn=NULL,Wfn=NULL,... ){
 
   if(is.null(formulaobs)){
     fn <- function(t,tvec) return(which.min(abs(t-tvec)))
@@ -730,6 +734,7 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
     }
     firstobs <- (1:nrow(data))[obsnum==1]
 
+    if(is.null(Xfn)){
     for (row in 1:nrow(data)) {
       t <- data[,names(data)%in%time][row]
       #        	absdiff <- abs(data[,names(data)%in%time] - t)
@@ -742,6 +747,19 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
       #        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min -
       #            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff ==
       #            0]])
+    }
+    } else{
+      for (row in 1:nrow(data)) {
+        t <- data[,names(data)%in%time][row]
+        Xt <- sapply(ids,Xfn,t)
+        Wt <- sapply(ids,Wfn,t)
+        Bt <- sweep(array(Wt,dim=c(nrow(data),ncol(W))),1,Bmultiplier,"*")
+        Xbar[row,] <- apply(sweep(array(Xt,dim=c(n,length(Xnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+        Bbar[row,] <- apply(sweep(array(Bt,dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+        #        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min -
+        #            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff ==
+        #            0]])
+      }
     }
 
     regX <- array((X - Xbar),dim=c(nrow(data),ncol(X)))[data[,names(data)%in%time]>0,]
@@ -867,19 +885,32 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
     }
     firstobs <- (1:nrow(data))[obsnum==1]
 
-    for (row in 1:nrow(data)) {
-      t <- data[,names(data)%in%time][row]
-      #        	absdiff <- abs(data[,names(data)%in%time] - t)
-      #        	min <- tapply(absdiff, data[,names(data)%in%id], min)
-      #        	data.min <- min[data[,names(data)%in%id]]
-      closest <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],fn,t=data[,names(data)%in%time][row])
-      userow <- firstobs + closest-1
-      Xbar[row,] <- apply(sweep(array(X[userow,],dim=c(n,length(Xnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
-      Bbar[row,] <- apply(sweep(array(Bhat[userow,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
-      #        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min -
-      #            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff ==
-      #            0]])
-    }
+    if(is.null(Xfn)){
+      for (row in 1:nrow(data)) {
+        t <- data[,names(data)%in%time][row]
+        #        	absdiff <- abs(data[,names(data)%in%time] - t)
+        #        	min <- tapply(absdiff, data[,names(data)%in%id], min)
+        #        	data.min <- min[data[,names(data)%in%id]]
+        closest <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],fn,t=data[,names(data)%in%time][row])
+        userow <- firstobs + closest-1
+        Xbar[row,] <- apply(sweep(array(X[userow,],dim=c(n,length(Xnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+        Bbar[row,] <- apply(sweep(array(Bhat[userow,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+        #        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min -
+        #            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff ==
+        #            0]])
+      }
+    } else{
+      for (row in 1:nrow(data)) {
+        t <- data[,names(data)%in%time][row]
+        Xt <- sapply(ids,Xfn,t)
+        Wt <- sapply(ids,Wfn,t)
+        Bt <- sweep(array(Wt,dim=c(nrow(data),ncol(W))),1,Bmultiplier,"*")
+        Xbar[row,] <- apply(sweep(array(Xt,dim=c(n,length(Xnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+        Bbar[row,] <- apply(sweep(array(Bt,dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t)),"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t)))
+        #        	Bbar[row,] <- apply(sweep(array(Bhat[data.min - absdiff == 0,],dim=c(n,length(Wnames))),1, (mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id]][data.min -
+        #            absdiff == 0],"*"),2,sum)/sum((mi.Lambdahat*as.numeric(Ci>=t))[data[,names(data)%in%id][data.min - absdiff ==
+        #            0]])
+      }}
 
     regX <- array((X - Xbar),dim=c(nrow(data),ncol(X)))[data[,names(data)%in%time]>0,]
     regB <- array(Bhat - Bbar,dim=c(nrow(data),ncol(W)))[data[,names(data)%in%time]>0,]

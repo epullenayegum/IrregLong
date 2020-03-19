@@ -59,6 +59,7 @@ library(MEMSS)
 library(survival)
 library(geepack)
 library(frailtypack)
+library(data.table)
 ```
 
 ```{r}
@@ -192,7 +193,7 @@ rsq1[8] <- summary(lm(conc~I((time)^3) +I((time)^(-2)),data=data,weight=i$iiw.we
 which.max(rsq1)
 rsq1[which.max(rsq1)]
 ```
-In all models, we thus use time, time^3, and log(time) The inverse-intensity-weighted GEE can be fitted using the function iiwgee. This function specifies first the formula for the GEE, then the formula for the inverse intensity weights.
+In all models, we thus use time, time^3, and log(time). The inverse-intensity-weighted GEE can be fitted using the function iiwgee. This function specifies first the formula for the GEE, then the formula for the inverse intensity weights.
 ```{r}
 
 iiwgee <- iiwgee(conc ~ time + I(time^3) + log(time),Surv(time.lag,time,event)~I(conc.lag>0) + log(1+dose.lag/Wt) + log(1+dose.lag/Wt)*conc.lag + +cluster(id),
@@ -264,7 +265,14 @@ where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially cor
 
 Liangmo <- function(data,Yname,Xnames,Wnames,maxfu,baseline){
  x <- Liang(data=data,Yname=Yname,Xnames=Xnames,Wnames=Wnames,id="id",time="time",
-            maxfu=maxfu,baseline=baseline); print(x); return(x)
+            maxfu=maxfu,baseline=baseline,Xfn=Xfn,Wfn=Wfn); print(x); return(x)
+}
+Xfn <- function(id,time){
+  # Group is time invariant so just use the first value for each subject
+  return(as.numeric(data$ApgarInd[data$id==id][1]))
+}
+Wfn <- function(id,time){
+  return(c(1,time))
 }
 data$Intercept <- 1
 data$time3 <- (data$time)^3
