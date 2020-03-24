@@ -12,7 +12,7 @@ vignette: >
 
 ## Overview
 
-Longitudinal data often has follow-up times that are irregular and potentially related to outcomes. For example, in a clinic-based cohort study where all follow-up is part of usual care, patients may visit more often when unwell. This risks over-estimating the burden of disease unless data are analysed appropriately. For example, in a study of HIV positive mothers, Buzkova et al @Buzkova2010 found a two-fold over-estimation of the estimated prevalence of pneumonia when analysis ignored the fact that women were more likely to visit between scheduled visits when they were unwell
+Longitudinal data often has follow-up times that are irregular and potentially related to outcomes. For example, in a clinic-based cohort study where all follow-up is part of usual care, patients may visit more often when unwell. This risks over-estimating the burden of disease unless data are analysed appropriately. For example, in a study of HIV positive mothers, Buzkova et al @Buzkova2010 found a two-fold over-estimation of the estimated prevalence of pneumonia when analysis ignored the fact that women were more likely to visit between scheduled visits when they were unwell.
 
 There are two categories of methods available for analysing this type of data: methods based on inverse-intensity weighting, and methods based on semi-parametric joint models (see @Pullenayegum2015 for an overview). This package provides methods for inverse-intensity weighting. 
 

@@ -4,6 +4,7 @@
 #' @importFrom stats runif formula model.matrix predict terms
 #' @importFrom graphics plot points segments
 #' @importFrom data.table data.table setkey rbindlist
+#' @importFrom graphics legend lines par
 
 
 lagby1.1person <- function(x){
@@ -957,6 +958,141 @@ abacus.plot <- function(n,time,id,data,tmin,tmax,xlab.abacus="Time",ylab.abacus=
   plot(use.data[,names(use.data)%in%time],use.data$newids,xlim=c(tmin,tmax),pch=pch.abacus,xlab=xlab.abacus,ylab=ylab.abacus,type="n")
   segments(rep(tmin,nrow(use.data)),use.data$newids,rep(tmax,nrow(use.data)),use.data$newids,col=col.abacus)
   points(use.data[,names(use.data)%in%time],use.data$newids,pch=pch.abacus)
+}
+
+#' Measures of extent of visit irregularity
+#' Provides visual and numeric measures of the extent of irregularity in observation times in a longitudinal dataset
+#'
+#' @details This function provides plots and a numerical summary of the extent of irregularity in visit times. For any given set of cutpoints, it computes the proportion of individuals with 0, 1 and >1 observation(s) in each bin, then takes the mean over bins. The sizes of the bins are varied and these proportions are plotted against bin size. In addition, then mean proportion of individuals with >1 visit per bin is plotted vs. the mean proportion of individuals with 0 visits per bin, and the area under the curve is calculated (AUC). An AUC of 0 represents perfect repeated measures while a Poisson Process has an AUC of 0. If cutpoints are not supplied, they are computed as follows: (a) for studies with protocolized visit times, the left- and right-hand cutpoints are positioned at the protocolized time minus (or plus, for right-hand cutpoints) (1,...,ncutpts)/ncutpts times the gap to the previous (or next, respectively) protocolized visit time; (b) for studies with no protocolized visit times, cutpoints are calculated by finding, for each j in {1,...,ncutpts} the largest times for which the cumulative hazard is less than j divided by the cumulative hazard evaluated at the maximum time of interest. This corresponds to choosing cutpoints such that the expected number of visits per bin is roughly equal within each set.
+#' @param data The data containing information on sbject identifiers and visit times
+#' @param time A character indicating which column of the data contains the times at which each of the observations in data was made
+#' @param id A character indicating which column of the data contains subject identifiers. ids are assumed to be consecutive integers, with the first subject having id 1
+#' @param scheduledtimes For studies with protocol-specified visit times, a vector of these times. Defaults to NULL, in which case it is assumed that there are no protocolized visit times
+#' @param cutpoints For studies with scheduled visit times, an array of dimension ncutpts by length(scheduledtimes) by 2 giving, for ncutpts sets of left and right cutpoints for each ptocollized scheduled visit times. The left-hand cutpoints correspond to cutpoints[,,1] and the right-hand cutpoints to cutpoints[,,2]. Defaults to NULL, in which case cutpoints are computed as described below.
+#' @param ncutpts The number of sets of cutpoints to consider
+#' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
+#' @param plot logical parameter indicating whether plots should be produced.
+#' @param legendx The x-coordinate for the position of the legend in the plot of mean proportion of individuals with 0, 1 and $>$ 1 visit per bin.
+#' @param legendy The y-coordinate for the position of the legend in the plot of mean proportion of individuals with 0, 1 and $>$ 1 visit per bin.
+#' @param formula For studies without protocolized visit times, the formula for the null counting process model for the visit times
+#' @param tau The maximum time of interest
+#' @return a list with counts equal to a 3-dimensional by ncutpts matrix giving, for each set of cutpoints, the mean proportion of individuals with zero, 1 and >1 visits per bin, and AUC, the area under the curve of the plot of the proportion of individuals with >1 visit per bin vs. the proportion of individuals with 0 visits per bin.
+#' @examples
+#' library(nlme)
+#' library(survival)
+#' data(Phenobarb)
+#' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+#' data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
+#' data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
+#' data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+#' data <- data[data$event==1,]
+#' data$id <- as.numeric(data$Subject)
+#' counts <- extent.of.irregularity(data,time="time",id="id",scheduledtimes=NULL,
+#' cutpoints=NULL,ncutpts=10,
+#' maxfu=16*24,plot=TRUE,legendx=NULL,legendy=NULL,formula=Surv(time.lag,time,event)~1,tau=16*24)
+#' counts$counts
+#' counts$auc
+#' @export
+
+extent.of.irregularity <- function(data,time="time",id="id",scheduledtimes=NULL,cutpoints=NULL,ncutpts=NULL,maxfu=NULL,plot=FALSE,legendx=NULL,legendy=NULL,formula=NULL,tau=NULL){
+
+  data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
+  time2 <- data[,names(data)%in%time]
+  idvec <- data[,names(data)%in%id]
+  if(!is.null(scheduledtimes)) if(scheduledtimes[length(scheduledtimes)]==maxfu) scheduledtimes <- scheduledtimes[-length(scheduledtimes)]
+  if(!is.null(scheduledtimes)){if(is.null(cutpoints)){ bin.widths <- 100*((1:(ncutpts-1))/ncutpts)} else{bin.widths <- 1:ncutpts }}
+  if(is.null(scheduledtimes)) bin.widths <- 1:ncutpts
+
+  getcounts <- function(cutpoints,time){
+    logicalmat <- outer(time,cutpoints[,2],"-")<0 & outer(time,cutpoints[,1],"-")>=0
+    inbin <- apply(logicalmat,2,collapseid,id=idvec)
+
+    one <- apply(inbin==1,2,mean)
+    gtone <- apply(inbin>1,2,mean)
+    zero <- apply(inbin==0,2,mean)
+    return(cbind(zero,one,gtone))
+  }
+
+  getcounts.nosched <- function(cutpoints,time){
+    logicalmat <- outer(time,cutpoints[-1],"-")<0 & outer(time,cutpoints[-length(cutpoints)],"-")>=0
+    inbin <- apply(logicalmat,2,collapseid,id=idvec)
+
+    one <- apply(inbin==1,2,mean)
+    gtone <- apply(inbin>1,2,mean)
+    zero <- apply(inbin==0,2,mean)
+    return(cbind(zero,one,gtone))
+  }
+
+  collapseid <- function(logicalvec,id){
+    return(tapply(as.numeric(logicalvec),id,sum))
+  }
+
+
+
+  if(!is.null(scheduledtimes)){
+    if(is.null(cutpoints)){
+      gaps <- c(0,c(scheduledtimes[-1],maxfu)-scheduledtimes)
+      leftcutpoints <- -sweep(outer(gaps,((1:(ncutpts-1))/ncutpts),"*"),1,c(scheduledtimes,maxfu),"-")
+      rightcutpoints <- sweep(outer(gaps,((1:(ncutpts-1))/ncutpts),"*"),1,c(scheduledtimes,maxfu),"+")
+      cutpoints <- array(dim=c(dim(leftcutpoints),2))
+      cutpoints[,,1] <- leftcutpoints
+      cutpoints[,,2] <- rightcutpoints
+    }
+
+    counts <- apply(cutpoints,2,getcounts,time=time2)
+    counts <- array(counts,dim=c(dim(cutpoints)[1],3,dim(cutpoints)[2]))
+    counts <- apply(counts,2:3,mean)
+  }
+
+  mean2<- function(counts){return(apply(counts,2,mean))}
+
+  if(is.null(scheduledtimes)){
+    data$event <- 1; event <- "event"
+    cutpoints <- lapply(1:ncutpts,basehaz.cutpoints,formula,data,id,time,event,lagvars="time",maxfu=maxfu,tau)
+    counts <- lapply(cutpoints,getcounts.nosched,time=time2)
+    counts <- lapply(counts,mean2)
+    counts <- array(unlist(counts),dim=c(3,length(counts)))
+  }
+
+
+  if(plot){
+    par(mfrow=c(2,1))
+    if(is.null(legendx)) legendx <- 0.2
+    if(is.null(legendy)) legendy <- 0.5
+    if(!is.null(scheduledtimes)){ xlab <- "Bin width (% of gap)"} else{ xlab <- "Number of bins"}
+    plot(x = bin.widths, y = counts[1,], type = "l", ylim=c(0,1), xlab=xlab, ylab="Mean proportions of individuals")
+    lines(x = bin.widths, y = counts[2,], type = "l", lty=2)
+    lines(x = bin.widths, y = counts[3,], type = "l", lty=3)
+    legend(legendx, legendy, legend=c("0 Visits per bin","1 Visit per bin",">1 Visits per bin"), lty=c(1,2,3), bty='n')
+    plot(counts[3,],counts[1,],xlab="Proportion with 0 visits per bin",ylab="Proportion with >1 visit per bin",type="l")
+  }
+  ord <- order(counts[3,])
+  auc <- sum(diff(counts[3,ord])*(counts[1,ord][-dim(counts)[2]] + diff(counts[1,ord]/2)))
+  return(list(counts=counts,auc=auc))
+
+}
+
+findx <- function(threshold,x,y){if(min(y)>=threshold){ ans <- 0} else{ans <- max(x[y<threshold])}; return(ans)}
+
+
+basehaz.cutpoints <- function(nbin,formula,data,id,time,event,lagvars,maxfu,tau){
+  data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
+
+  ids <- as.numeric(names(table(data[,names(data)%in%id])))
+  if(!is.null(maxfu)){if(length(maxfu)>1 | sum(is.na(maxfu))==0){ if(is.data.frame(maxfu)){ for(i in 1:nrow(maxfu)){ maxfu[i,names(maxfu)%in%id] <- (1:length(ids))[maxfu[i,names(maxfu)%in%id]==ids]}}}}
+
+
+  if(!is.null(maxfu)){datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=id,id=id,time=time,event=event)}
+  if(is.null(maxfu)) datacox <- data
+
+  datacox <- lagfn(datacox,lagvars,id,time)
+  s <- survfit(formula,data=datacox)
+  Hazard <- s$cumhaz
+  basehaz.pts <- max(Hazard)*(0:nbin)/nbin
+  time.cuts <- sapply(basehaz.pts,FUN=findx,x=s$time,y=Hazard)
+  return(time.cuts)
 }
 
 
