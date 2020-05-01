@@ -1,15 +1,15 @@
 Package: IrregLong
 Type: Package
 Title: Analysis of Longitudinal Data with Irregular Observation Times
-Version: 0.2.0
-Date: 2020-01-23
+Version: 0.3.0
+Date: 2020-04-30
 Author: Eleanor Pullenayegum
 Maintainer: Eleanor Pullenayegum <eleanor.pullenayegum@sickkids.ca>
 Description: Analysis of longitudinal data for which the times of observation are random variables that are potentially associated with the outcome process. The package includes inverse-intensity weighting methods (Lin H, Scharfstein DO, Rosenheck RA (2004) <doi:10.1111/j.1467-9868.2004.b5543.x>) and multiple outputation (Pullenayegum EM (2016) <doi:10.1002/sim.6829>).
 Depends: R (>= 2.10)
 Imports: survival, geepack, frailtypack, data.table 
 License: GPL-3
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 Suggests: knitr,
     rmarkdown,
     nlme,

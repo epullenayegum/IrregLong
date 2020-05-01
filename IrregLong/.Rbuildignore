@@ -6,3 +6,4 @@
 IrregLong.Rproj
 cran_comments.md
 News.Rmd
+^revdep$

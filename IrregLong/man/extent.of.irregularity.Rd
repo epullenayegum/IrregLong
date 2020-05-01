@@ -21,7 +21,7 @@ extent.of.irregularity(
 )
 }
 \arguments{
-\item{data}{The data containing information on sbject identifiers and visit times}
+\item{data}{The data containing information on subject identifiers and visit times}
 
 \item{time}{A character indicating which column of the data contains the times at which each of the observations in data was made}
 
@@ -29,7 +29,7 @@ extent.of.irregularity(
 
 \item{scheduledtimes}{For studies with protocol-specified visit times, a vector of these times. Defaults to NULL, in which case it is assumed that there are no protocolized visit times}
 
-\item{cutpoints}{For studies with scheduled visit times, an array of dimension ncutpts by length(scheduledtimes) by 2 giving, for ncutpts sets of left and right cutpoints for each ptocollized scheduled visit times. The left-hand cutpoints correspond to cutpoints[,,1] and the right-hand cutpoints to cutpoints[,,2]. Defaults to NULL, in which case cutpoints are computed as described below.}
+\item{cutpoints}{For studies with scheduled visit times, an array of dimension ncutpts by length(scheduledtimes) by 2 giving, for ncutpts sets of left and right cutpoints for each protocolized scheduled visit times. The left-hand cutpoints correspond to cutpoints[,,1] and the right-hand cutpoints to cutpoints[,,2]. Defaults to NULL, in which case cutpoints are computed as described below.}
 
 \item{ncutpts}{The number of sets of cutpoints to consider}
 
