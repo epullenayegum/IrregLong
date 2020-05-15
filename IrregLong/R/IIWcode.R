@@ -1036,14 +1036,14 @@ extent.of.irregularity <- function(data,time="time",id="id",scheduledtimes=NULL,
       gaps <- c(0,c(scheduledtimes[-1],maxfu)-scheduledtimes)
       leftcutpoints <- -sweep(outer(gaps,((1:(ncutpts-1))/ncutpts),"*"),1,c(scheduledtimes,maxfu),"-")
       rightcutpoints <- sweep(outer(gaps,((1:(ncutpts-1))/ncutpts),"*"),1,c(scheduledtimes,maxfu),"+")
-      cutpoints <- array(dim=c(dim(leftcutpoints),2))
-      cutpoints[,,1] <- leftcutpoints
-      cutpoints[,,2] <- rightcutpoints
+      cutpoints <- array(dim=c(dim(t(leftcutpoints)),2))
+      cutpoints[,,1] <- t(leftcutpoints)
+      cutpoints[,,2] <- t(rightcutpoints)
     }
 
-    counts <- apply(cutpoints,2,getcounts,time=time2)
-    counts <- array(counts,dim=c(dim(cutpoints)[1],3,dim(cutpoints)[2]))
-    counts <- apply(counts,2:3,mean)
+    counts <- apply(cutpoints,1,getcounts,time=time2)
+    counts <- array(as.vector(counts),dim=c(dim(cutpoints)[2],3,dim(cutpoints)[1]))
+    counts <- (apply(counts,c(2,3),mean))
   }
 
   mean2<- function(counts){return(apply(counts,2,mean))}
@@ -1065,8 +1065,8 @@ extent.of.irregularity <- function(data,time="time",id="id",scheduledtimes=NULL,
     plot(x = bin.widths, y = counts[1,], type = "l", ylim=c(0,1), xlab=xlab, ylab="Mean proportions of individuals")
     lines(x = bin.widths, y = counts[2,], type = "l", lty=2)
     lines(x = bin.widths, y = counts[3,], type = "l", lty=3)
-    legend(legendx, legendy, legend=c("0 Visits per bin","1 Visit per bin",">1 Visits per bin"), lty=c(1,2,3), bty='n')
-    plot(counts[3,],counts[1,],xlab="Proportion with 0 visits per bin",ylab="Proportion with >1 visit per bin",type="l")
+    legend(legendx, legendy, legend=c("0 observations per bin","1 observation per bin",">1 observations per bin"), lty=c(1,2,3), bty='n')
+    plot(counts[3,],counts[1,],ylab="Mean proportion with 0 observations per bin",xlab="Mean proportion with >1 observation per bin",type="l")
   }
   ord <- order(counts[3,])
   auc <- sum(diff(counts[3,ord])*(counts[1,ord][-dim(counts)[2]] + diff(counts[1,ord]/2)))
