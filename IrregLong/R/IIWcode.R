@@ -591,7 +591,7 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #' @param n.knots integer giving the number of knots to use in fitting the frailty model. See documentation for frailtyPenal for more details
 #' @param kappa positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more details
 #' @param ... other arguments to Xfn and Yfn
-#' @details The Liang method requires a value of X and W for evey time over the observation period. If Xfn is left as NULL, then the Liang function will use, for each subject and for each time t, the values of X and W at the observation time closest to t.
+#' @details The Liang method requires a value of X and W for every time over the observation period. If Xfn is left as NULL, then the Liang function will use, for each subject and for each time t, the values of X and W at the observation time closest to t.
 #' @return the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
 #' @references Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.
 #' @export

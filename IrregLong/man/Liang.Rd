@@ -71,7 +71,7 @@ Fits a semi-parametric joint model as described by Liang et al. (2009).
 \details{
 This function fits a semi-parametric joint model as described in Liang (2009), using a frailty model to estimate the parameters in the visit intensity model
 
-The Liang method requires a value of X and W for evey time over the observation period. If Xfn is left as NULL, then the Liang function will use, for each subject and for each time t, the values of X and W at the observation time closest to t.
+The Liang method requires a value of X and W for every time over the observation period. If Xfn is left as NULL, then the Liang function will use, for each subject and for each time t, the values of X and W at the observation time closest to t.
 }
 \examples{
 # replicate simulation in Liang et al.
