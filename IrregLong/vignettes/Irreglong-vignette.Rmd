@@ -28,7 +28,8 @@ Suppose $Y_i(t)$ is the outcome of interest for subject $i$ at time $t$, let $X_
 The usual GEE equations will result in biased estimates of $\beta$ since
 \[E(\sum_i\int_0^\tau X_i^\prime (Y_i(t) - X_i(t)\beta)dN_i(t)) =E(\sum_i\int_0^\tau X_i^\prime E((Y_i(t) - X_i(t)\beta)dN_i(t)\mid X_i(t)) \neq 0  \]
 Provided that the conditional independence assumption holds, consistent estimates of $\beta$ may be obtained by weighting the GEE equations by $sw_i(t)=s_0(t)/\lambda_i(t)$
-\[E(\sum_i\int_0^\tau X_i^\prime sw_i(t)(Y_i(t) - X_i(t)\beta)dN_i(t)) =E(\sum_i\int_0^\tau X_i^\prime E(sw_i(t)(Y_i(t) - X_i(t)\beta)dN_i(t)\mid X_i(t),Y_i(t)) = E(\sum_i\int_0^\tau X_i^\prime sw_i(t)(Y_i(t) - X_i(t)\beta)\lambda_i(t)dt=0.  \]
+\[E(\sum_i\int_0^\tau X_i^\prime sw_i(t)(Y_i(t) - X_i(t)\beta)dN_i(t)) =E(\sum_i\int_0^\tau X_i^\prime E(sw_i(t)(Y_i(t) - X_i(t)\beta)dN_i(t)\mid X_i(t),Y_i(t)) \\
+= E(\sum_i\int_0^\tau X_i^\prime sw_i(t)(Y_i(t) - X_i(t)\beta)\lambda_i(t)dt=0.  \]
 
 ## Implementing Inverse-Intensity weighting
 
@@ -268,7 +269,7 @@ We consider the same example as before, now examining whether the concentration 
 \[conc_i(t)=\beta_0(t) + \beta_1I(Apgar_i<5) + \beta_2I(Apgar\geq 5)t^3 + \beta_3I(Apgar\geq 5)log(t) +  \nu_{i1} + \epsilon_i(t),\]
 with visit process model given by
 \[\lambda_i(t)=\nu_{i2}\lambda_0(t)\exp(I(conc_i(T_{iN_i(t^-)})>0)\gamma_1 + conc_i(T_{iN_i(t^-)})\gamma_2 +\\
-\log(1+dose_{iT_i(t^-)}/Birthweight_i)\gamma_3 + conc_i(T_{iN_i(t^-)})*\log(1+dose_{iT_i(t^-)}/Birthweight_i))\gamma_4), \]
+\log(1+dose_{iT_i(t^-)}/Birthweight_i)\gamma_3 + conc_i(T_{iN_i(t^-)})*\log(1+dose_{iT_i(t^-)}/Birthweight_i)\gamma_4), \]
 where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially correlated with $E(\nu_{i1}\mid\nu_{i2})=\theta(\nu_{i2}-1)$ for some $\theta$. Note that when calculating the weights used for outputation, the ```frailty=TRUE``` option should be used in visit intensity calculation because the lagged concentration is an internal covariate that is potentially correlated with the frailty variable, and the Cox model is non-collapsible. A difficulty with using multiple outputation is that it reduces the size of the dataset available for each analysis, which can result in singularities in regression models. In this example, some outputted datasets have no subjects with an Apgar score less than 5, and hence the regression model cannot be fitted. A pragmatic work-around is to truncate the weights - this introduces some bias but results in a higher proportion of observations being retained at each outputation and consequently a smaller chance of singularities. In this example we truncate at the $95^{th}$ percentile. For this analysis, time is transformed to days rather than hours to avoid computational problems with the Liang function
 ```{r,results='hide',message=FALSE}
 
