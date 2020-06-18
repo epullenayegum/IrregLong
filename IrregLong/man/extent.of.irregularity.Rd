@@ -60,11 +60,7 @@ library(nlme)
 library(survival)
 data(Phenobarb)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
-data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
-data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
-data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
-data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
-data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+data <- Phenobarb
 data <- data[data$event==1,]
 data$id <- as.numeric(data$Subject)
 counts <- extent.of.irregularity(data,time="time",id="id",scheduledtimes=NULL,

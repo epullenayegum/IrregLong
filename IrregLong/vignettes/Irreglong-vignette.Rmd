@@ -66,11 +66,7 @@ library(data.table)
 ```{r}
 data(Phenobarb)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
-data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
-data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
-data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
-data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
-data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+data <- Phenobarb
 data <- data[data$event==1,]
 data$id <- as.numeric(data$Subject)
 data <- data[data$time<16*24,]
@@ -98,43 +94,30 @@ counts <- extent.of.irregularity(data,time="time",id="id",
 To fit an inverse intensity weighted GEE, one begins by modelling the visit intensity. Although the IrregLong package includes a function that calculates both the inverse-intensity weights and the weighted GEE in a single command, it can be helpful to start by focussing on the visit intensity model. Modelling is usually done through a Cox proportional hazards model on the recurrent visit process. To do this, we need to specify time periods at risk, and so need to lag the time variable. If there are time-dependent covariates and we suspect that the value at the last measurement is predictive of when the next measurement will be taken, these time-dependent covariates must also be lagged. The IrregLong package simplifies this process by allowing the user to specify which covariates should be lagged (lagvars=c("time","conc")) and creating these lagged covariates internally (time.lag,conc.lag). The value of the lagged variables will by default be missing for the first observation in each subject, but this can be changed through the lagfirst argument. We set the lagged  value of time at the first observed blood draw to be zero (lagfirst=0) since observation started at birth for all infants. Similarly, we set the lagged value of serum phenobarbital concentration to be zero at the first draw, since the last known value of serum concentration was at birth, prior to administration of phenobarbital. However, since it is reasonable to expect that the effect of last known concentration on the time to the next blood draw may differ between the first and subsequent draws, we include a separate effect for whether the last known concentration was positive (equivalent to whether this is the first blood draw). 
 
 ```{r}
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + Apgar + I(conc.lag>0) + conc.lag + dose.lag +
+data$Apgar <- as.numeric(data$Apgar)
+i <- iiw.weights(Surv(time.lag,time,event)~Wt + Apgar + 
+                   I(conc.lag>0 & conc.lag<=20) + 
+                I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)+
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
+      invariant=c("Subject","Wt","Apgar"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
+ 
 ```
 
-Since Apgar score is not significant, we consider whether the model can be simplified - first by including Apgar score as an indicator ($\geq 5$ vs. $<5$), then by removing variables that are not significant. We then consider whether interaction terms are needed.
+Since Apgar score and birthweight are not significant, we consider whether the model can be simplified - first by including Apgar score as an indicator ($\geq 5$ vs. $<5$), then by removing variables that are not significant. We then consider whether interaction terms are needed.
 ```{r}
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + ApgarInd + I(conc.lag>0) + conc.lag + dose.lag +
+i <- iiw.weights(Surv(time.lag,time,event)~Wt + ApgarInd + I(conc.lag>0 & conc.lag<=20) + 
+                I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)+ 
+      cluster(Subject),id="Subject",time="time",event="event",data=data,
+      invariant=c("Subject","Wt","ApgarInd"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
+i$m
+i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0 & conc.lag<=20) + 
+                I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)+ 
       cluster(Subject),id="Subject",time="time",event="event",data=data,
       invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + dose.lag +
-      cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
-i$m
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + dose.lag +          I(dose.lag*Wt^(-1)) + cluster(Subject),
-                 id="Subject",time="time",event="event",data=data,
-      invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
-i$m
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + sqrt(dose.lag/Wt) +
-      cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
-i$m
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag + log(1+dose.lag/Wt) +
-      cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
-i$m
-i <- iiw.weights(Surv(time.lag,time,event)~Wt *( I(conc.lag>0) + conc.lag) + log(1+dose.lag/Wt) +
-      cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
-i$m
-i <- iiw.weights(Surv(time.lag,time,event)~Wt + log(1+dose.lag/Wt) + log(1+dose.lag/Wt)*(I(conc.lag>0) + conc.lag) +
-      cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant=c("Subject","wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
-i$m
-i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0) + log(1+dose.lag/Wt) + log(1+dose.lag/Wt)*conc.lag +
+i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0 & conc.lag<=20) + 
+                I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30) + 
       cluster(Subject),id="Subject",time="time",event="event",data=data,
       invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
@@ -205,7 +188,8 @@ rsq1[which.max(rsq1)]
 In all models, we thus use time, time^3, and log(time). The inverse-intensity-weighted GEE can be fitted using the function iiwgee. This function specifies first the formula for the GEE, then the formula for the inverse intensity weights.
 ```{r}
 
-iiwgee <- iiwgee(conc ~ time + I(time^3) + log(time),Surv(time.lag,time,event)~I(conc.lag>0) + log(1+dose.lag/Wt) + log(1+dose.lag/Wt)*conc.lag + +cluster(id),
+iiwgee <- iiwgee(conc ~ time + I(time^3) + log(time),Surv(time.lag,time,event)~I(conc.lag>0 & conc.lag<=20) + 
+                I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30) +cluster(id),
         formulanull=NULL,id="id",time="time",event="event",data=data,
         invariant=c("id","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 ```
@@ -291,8 +275,8 @@ data$ApgarInd.time <- as.numeric(data$ApgarInd)*data$time/24
 data$ApgarInd.time3 <- as.numeric(data$ApgarInd)*((data$time/24)^3)
 
 set.seed(301031)
-ifrailty <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0) + conc.lag +
-                      I(log(1+dose.lag/Wt)) + I(log(1+dose.lag/Wt)):conc.lag    
+ifrailty <- iiw.weights(Surv(time.lag,time,event)~ I(conc.lag>0 & conc.lag<=20) + 
+                I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)   
                       +cluster(id),id="id",time="time",event="event",data=data,     
                       invariant=c("id","Wt"),lagvars=c("time","conc"),maxfu=16*24,
                       lagfirst=c(0,0), first=FALSE,frailty=TRUE)

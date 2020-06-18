@@ -30,18 +30,15 @@ library(survival)
 library(geepack)
 data(Phenobarb)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
-data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
-data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
-data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
-data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
-data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+data <- Phenobarb
 data <- data[data$event==1,]
 data$id <- as.numeric(data$Subject)
 data <- data[data$time<16*24,]
 data <- lagfn(data, lagvars=c("time","conc"), id="Subject", time="time", lagfirst = NA)
 head(data)
 
-mph <- coxph(Surv(time.lag,time,event)~I(conc.lag>0) + conc.lag + cluster(id),data=data)
+mph <- coxph(Surv(time.lag,time,event)~I(conc.lag>0 & conc.lag<=20) + I(conc.lag>20 & conc.lag<=30)
+ + I(conc.lag>30)+ cluster(id),,data=data)
 summary(mph)
 data$weight <- iiw(mph,data,"id","time",TRUE)
 head(data)

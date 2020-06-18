@@ -51,19 +51,14 @@ library(survival)
 library(geepack)
 
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
-data <- lagfn(Phenobarb, lagvars="dose", id="Subject", time="time", lagfirst = 0)
-data <- lagfn(data, lagvars="dose.lag", id="Subject", time="time", lagfirst = 0)
-data <- lagfn(data, lagvars="dose.lag.lag", id="Subject", time="time", lagfirst = 0)
-data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag[is.na(data$dose.lag)]
-data$dose.lag[is.na(data$dose.lag)] <- data$dose.lag.lag.lag[is.na(data$dose.lag)]
+data <- Phenobarb
 data <- data[data$event==1,]
 data$id <- as.numeric(data$Subject)
 data <- data[data$time<16*24,]
-i <- iiw.weights(Surv(time.lag,time,event)~Wt *dose.lag +
-         dose.lag*(I(conc.lag>0) + conc.lag) +
-         cluster(Subject),id="id",time="time",event="event",data=data,
-         invariant="Subject",lagvars=c("time","conc"),maxfu=16*24,
-         lagfirst=0,first=TRUE)
+i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0 & conc.lag<=20) +
+I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)+ cluster(id),
+id="id",time="time",event="event",data=data, invariant="id",lagvars=c("time","conc"),maxfu=16*24,
+         lagfirst=c(0,0),first=TRUE)
 wt <- i$iiw.weight
 wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
 data$wt <- wt
