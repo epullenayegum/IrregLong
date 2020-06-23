@@ -42,7 +42,7 @@ The IrregLong package simplifies modelling of the visit process by creating a da
 The inverse-intensity weight is $w_i(t) = \frac{\exp(-Z_i(t)\gamma)}{\lambda_0(t)}$. Following
 @BuzkovaCJS2007, all inverse-intensity weights in this package are stabilized by the baseline hazard $\lambda_0(t)$, so that the stabilized weight is $sw_i(t)=\exp(-Z_i(t)\gamma)$. In some settings one may additionally wish to stabilize by a function of the time-invariant covariates in $X_i(t)$, and an option to do so is included in the functions. One can then fit a GEE to obtain the regression coefficients $\beta$ corresponding to regressing $Y_i(t)$ on $X_i(t)$, weighting by $sw_i(t)$. 
 
-An important practical point is that when using inverse-intensity weighting the working variance for the GEE must be set to the identity. This is because functions for fitting GEEs interpret the weights as indicating heteroscedasticity. Thus is $Y_i$ is the vector of observations for subject $i$, $X_i$ is the matrix of corresponding covariates, $R_i$ is the working variance matrix and $D_i$ is a diagonal matrix whose $jj$ entry of the weight for the $j^{th}$ observation for subject $i$, then standard GEE software solves
+An important practical point is that when using inverse-intensity weighting the working variance for the GEE must be set to the identity. This is because functions for fitting GEEs interpret the weights as indicating heteroscedasticity. Thus if $Y_i$ is the vector of observations for subject $i$, $X_i$ is the matrix of corresponding covariates, $R_i$ is the working variance matrix and $D_i$ is a diagonal matrix whose $jj$ entry of the weight for the $j^{th}$ observation for subject $i$, then standard GEE software solves
 \[\sum_iX_i^\prime D_i^{1/2}R_i^{-1}D_i^{1/2}(Y_i-X_i\beta)=0,\]
 whereas we wish to solve
 \[\sum_iX_i^\prime R_i^{-1}D_i(Y_i-X_i\beta)=0.\]
@@ -51,7 +51,7 @@ The two are, however, identical if $R_i$ is the identity matrix. While at first 
 ### Example
 These methods are illustrated using the Phenobarb dataset from the MEMSS package. Routine clinical pharmacokinetic data were collected from 59 preterm infants who received phenobarbital in order to prevent seizures. Blood draws were taken to determine serum concentration of phenobarbital, with the timing and number of draws varying among infants. For the purposes of illustration this analysis focuses not on pharmacokinetics but on the mean serum concentration of phenobarbital over time.
 
-This dataset contains some rows corresponding to times at which phenobarbital given and others at which a blood draw was taken to determine serum phenobarbital concentration. For the visit intensity model, the event of interest is having a concentration measured, so we set the variable event=1 if concentration was measured and zero otherwise. It is plausible that the dose of phenobarbital at the last administration, as well as the concentration at the last measurement, are informative about the time of the next concentration measurement, and so we create lagged versions of these variables. Ordinarily, this can be done within the iiwgee function. However, since in this dataset dose is recorded only when a new dose is given, and some infants had multiple concentration measurements without a new dose, the lagged dose variable needs to be created before running iiwgee. The dose variable is carried forward until a new dose is observed, through multiple calls to lagfn. The data is then restricted to those time points when a concentration measurement was taken. The original pharmacokinetic analysis restricts attention to the first 16 days of life, which we also do here. Finally, the IrregLong package requires the variable identifying subjects to be numeric rather than a factor, so we create a new numeric id variable. 
+This dataset contains some rows corresponding to times at which phenobarbital given and others at which a blood draw was taken to determine serum phenobarbital concentration. For the visit intensity model, the event of interest is having a concentration measured, so we set the variable event=1 if concentration was measured and zero otherwise. The data is then restricted to those time points when a concentration measurement was taken. The original pharmacokinetic analysis restricts attention to the first 16 days of life, which we also do here.  
 
 
 ```{r,results='hide',message=FALSE, warning=FALSE}
@@ -85,13 +85,13 @@ This shows an median of 3 visits per subject with a range of 1 to 6. The plot sh
 
 ```{r,fig.width=8, fig.height=12}
 counts <- extent.of.irregularity(data,time="time",id="id",
-  scheduledtimes=NULL, cutpoints=NULL,ncutpts=50, maxfu=16*24,
-  plot=TRUE,legendx=30,legendy=0.8,
+  scheduledtimes=NULL, cutpoints=NULL,ncutpts=50, 
+  maxfu=16*24, plot=TRUE,legendx=30,legendy=0.8,
  formula=Surv(time.lag,time,event)~1,tau=16*24)
  counts$auc
 ```
 
-To fit an inverse intensity weighted GEE, one begins by modelling the visit intensity. Although the IrregLong package includes a function that calculates both the inverse-intensity weights and the weighted GEE in a single command, it can be helpful to start by focussing on the visit intensity model. Modelling is usually done through a Cox proportional hazards model on the recurrent visit process. To do this, we need to specify time periods at risk, and so need to lag the time variable. If there are time-dependent covariates and we suspect that the value at the last measurement is predictive of when the next measurement will be taken, these time-dependent covariates must also be lagged. The IrregLong package simplifies this process by allowing the user to specify which covariates should be lagged (lagvars=c("time","conc")) and creating these lagged covariates internally (time.lag,conc.lag). The value of the lagged variables will by default be missing for the first observation in each subject, but this can be changed through the lagfirst argument. We set the lagged  value of time at the first observed blood draw to be zero (lagfirst=0) since observation started at birth for all infants. Similarly, we set the lagged value of serum phenobarbital concentration to be zero at the first draw, since the last known value of serum concentration was at birth, prior to administration of phenobarbital. However, since it is reasonable to expect that the effect of last known concentration on the time to the next blood draw may differ between the first and subsequent draws, we include a separate effect for whether the last known concentration was positive (equivalent to whether this is the first blood draw). 
+To fit an inverse intensity weighted GEE, one begins by modelling the visit intensity. Although the IrregLong package includes a function that calculates both the inverse-intensity weights and the weighted GEE in a single command, it can be helpful to start by focussing on the visit intensity model. Modelling is usually done through a Cox proportional hazards model on the recurrent visit process. To do this, we need to specify time periods at risk, and so need to lag the time variable. If there are time-dependent covariates and we suspect that the value at the last measurement is predictive of when the next measurement will be taken, these time-dependent covariates must also be lagged. The IrregLong package simplifies this process by allowing the user to specify which covariates should be lagged (lagvars=c("time","conc")) and creating these lagged covariates internally (time.lag,conc.lag). The value of the lagged variables will by default be missing for the first observation in each subject, but this can be changed through the lagfirst argument. We set the lagged  value of time at the first observed blood draw to be zero (lagfirst=0) since observation started at birth for all infants. Similarly, we set the lagged value of serum phenobarbital concentration to be zero at the first draw, since the last known value of serum concentration was at birth, prior to administration of phenobarbital, and allow for a non-linear relationship between concentration and log visit intensity. 
 
 ```{r}
 data$Apgar <- as.numeric(data$Apgar)
@@ -99,17 +99,18 @@ i <- iiw.weights(Surv(time.lag,time,event)~Wt + Apgar +
                    I(conc.lag>0 & conc.lag<=20) + 
                 I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)+
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant=c("Subject","Wt","Apgar"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
+      invariant=c("Subject","Wt","Apgar"),lagvars=c("time","conc"),maxfu=16*24,
+      lagfirst=c(0,0),first=FALSE)
 i$m
  
 ```
 
-Since Apgar score and birthweight are not significant, we consider whether the model can be simplified - first by including Apgar score as an indicator ($\geq 5$ vs. $<5$), then by removing variables that are not significant. We then consider whether interaction terms are needed.
+Since Apgar score and birthweight are not significant, we consider whether the model can be simplified - first by including Apgar score as an indicator ($\geq 5$ vs. $<5$), then by removing variables that are not significant. 
 ```{r}
 i <- iiw.weights(Surv(time.lag,time,event)~Wt + ApgarInd + I(conc.lag>0 & conc.lag<=20) + 
                 I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)+ 
       cluster(Subject),id="Subject",time="time",event="event",data=data,
-      invariant=c("Subject","Wt","ApgarInd"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
+      invariant=c("Subject","Wt","ApgarInd"),lagvars=c("time","conc"), maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 i <- iiw.weights(Surv(time.lag,time,event)~Wt + I(conc.lag>0 & conc.lag<=20) + 
                 I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)+ 
@@ -122,7 +123,7 @@ i <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0 & conc.lag<=20) +
       invariant=c("Subject","Wt"),lagvars=c("time","conc"),maxfu=16*24,lagfirst=c(0,0),first=FALSE)
 i$m
 ```
-It thus appears that last dose per kilo birthweight, last concentration, and the interactions between last dose per kilo birthweight and concentration are predictive of the time to the next concentration measurement.
+It thus appears that last concentration is predictive of the time to the next concentration measurement.
 
 Having established a model for the visit intensity, we now turn to modelling the serum concentration as a function of time. A plot of concentration over time shows that the relationship is unlikely to be linear, even in the weighted data. We thus use fractional polynomials to model the shape of the association over time.
 ```{r fig3, fig.height=6, fig.width=6, fig.align="center"}
@@ -236,7 +237,7 @@ m.mogee <- mo(20,reg,data,wt, singleobs=FALSE,id="id",time="time",keep.first=FAL
 m.mogee
 ```
 
-The multiple outputation estimates of the regression coefficients (```$est```), and is the mean across outputations of the GEE estimates. The multiple outputation standard error (```$se```) is a function of both the within outputation standard errors and the between outputation variance. The relative efficiency of using 20 outputations in place of all possible outputations is given by ```RE.MO```. In this example the number of observations per subject becomes small on outputation, resulting in the usual sandwich variance estimator for the GEE underestimating the standard error. For this reason, we use a small sample  sandwich variance correction from the "geesmv" package. There are a number of options available, and in this example we have used the Mancl deRouen correction [ref]. The multiple outputation estimates based on the above seed were 16.0 (SE 1.53), -7.72e-07 (SE 1.16e-07) and 3.42 (SE 5.52) for the intercept, $time^3$, and $\log(time)$ respectively. The relative efficiencies were 1.01, 1.008, and 1.008, suggesting that there is little to be gained by running more outputations.
+The multiple outputation estimates of the regression coefficients (```$est```), and is the mean across outputations of the GEE estimates. The multiple outputation standard error (```$se```) is a function of both the within outputation standard errors and the between outputation variance. The relative efficiency of using 20 outputations in place of all possible outputations is given by ```RE.MO```. In this example the number of observations per subject becomes small on outputation, resulting in the usual sandwich variance estimator for the GEE underestimating the standard error. For this reason, we use a small sample  sandwich variance correction from the "geesmv" package. There are a number of options available, and in this example we have used the Mancl deRouen correction [@Mancl2001]. The multiple outputation estimates based on the above seed were 16.0 (SE 1.53), -7.72e-07 (SE 1.16e-07) and 3.42 (SE 5.52) for the intercept, $time$, and $time^3$ respectively. The relative efficiencies were 1.01, 1.008, and 1.008, suggesting that there is little to be gained by running more outputations.
 
 
 Multiple outputation is helpful for analyses where weighting is difficult to implement. One such example is a semi-parametric joint model. Semi-parametric joint models are useful when there are latent variables that influence both the outcome and visit processes. We consider the Liang [@Liang2009] semi-parametric joint model:
@@ -250,11 +251,11 @@ for an observed vector of time-dependent auxiliary covariates $Z_i(t)$ may be mo
 
 ### Example
 We consider the same example as before, now examining whether the concentration differs between those with an Apgar score <5 at birth and those with a score >=5, and allowing a random intercept that is potentially correlated with a frailty variable in the visit process. That is, we take
-\[conc_i(t)=\beta_0(t) + \beta_1I(Apgar_i<5) + \beta_2I(Apgar\geq 5)t^3 + \beta_3I(Apgar\geq 5)log(t) +  \nu_{i1} + \epsilon_i(t),\]
+\[conc_i(t)=\beta_0(t) + \beta_1I(Apgar_i<5) + \beta_2I(Apgar\geq 5)t + \beta_3I(Apgar\geq 5)t^3 +  \nu_{i1} + \epsilon_i(t),\]
 with visit process model given by
-\[\lambda_i(t)=\nu_{i2}\lambda_0(t)\exp(I(conc_i(T_{iN_i(t^-)})>0)\gamma_1 + conc_i(T_{iN_i(t^-)})\gamma_2 +\\
-\log(1+dose_{iT_i(t^-)}/Birthweight_i)\gamma_3 + conc_i(T_{iN_i(t^-)})*\log(1+dose_{iT_i(t^-)}/Birthweight_i)\gamma_4), \]
-where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially correlated with $E(\nu_{i1}\mid\nu_{i2})=\theta(\nu_{i2}-1)$ for some $\theta$. Note that when calculating the weights used for outputation, the ```frailty=TRUE``` option should be used in visit intensity calculation because the lagged concentration is an internal covariate that is potentially correlated with the frailty variable, and the Cox model is non-collapsible. A difficulty with using multiple outputation is that it reduces the size of the dataset available for each analysis, which can result in singularities in regression models. In this example, some outputted datasets have no subjects with an Apgar score less than 5, and hence the regression model cannot be fitted. A pragmatic work-around is to truncate the weights - this introduces some bias but results in a higher proportion of observations being retained at each outputation and consequently a smaller chance of singularities. In this example we truncate at the $95^{th}$ percentile. For this analysis, time is transformed to days rather than hours to avoid computational problems with the Liang function
+\[\lambda_i(t)=\nu_{i2}\lambda_0(t)\exp(I(0<conc_i(T_{iN_i(t^-)})\leq 20)\gamma_1 + I(20< conc_i(T_{iN_i(t^-)})\leq 30)\gamma_2 +\\
+I(conc_i(T_{iN_i(t^-)})> 30)\gamma_3, \]
+where $\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime$ and $\nu_{i2}$ are potentially correlated with $E(\nu_{i1}\mid\nu_{i2})=\theta(\nu_{i2}-1)$ for some $\theta$. Note that when calculating the weights used for outputation, the ```frailty=TRUE``` option should be used in visit intensity calculation because the lagged concentration is an internal covariate that is potentially correlated with the frailty variable, and the Cox model is non-collapsible. For this analysis, time is transformed to days rather than hours to avoid computational problems with the Liang function.
 ```{r,results='hide',message=FALSE}
 
 Liangmo <- function(data,Yname,Xnames,Wnames,maxfu,baseline){
@@ -275,14 +276,14 @@ data$ApgarInd.time <- as.numeric(data$ApgarInd)*data$time/24
 data$ApgarInd.time3 <- as.numeric(data$ApgarInd)*((data$time/24)^3)
 
 set.seed(301031)
-ifrailty <- iiw.weights(Surv(time.lag,time,event)~ I(conc.lag>0 & conc.lag<=20) + 
+ifrailty <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0 & conc.lag<=20) + 
                 I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)   
                       +cluster(id),id="id",time="time",event="event",data=data,     
-                      invariant=c("id","Wt"),lagvars=c("time","conc"),maxfu=16*24,
+                      invariant=c("id"),lagvars=c("time","conc"),maxfu=16*24,
                       lagfirst=c(0,0), first=FALSE,frailty=TRUE)
 
 wt <- ifrailty$iiw.weight
-wt[wt>quantile(ifrailty$iiw.weight,0.95)] <- quantile(ifrailty$iiw.weight,0.95)
+
 m.moLiang <- mo(20,Liangmo,data,wt, 
          singleobs=FALSE,id="id",time="time",keep.first=FALSE,var=FALSE,Yname="conc",
          Xnames=c("ApgarInd","ApgarInd.time","ApgarInd.time3"), 
