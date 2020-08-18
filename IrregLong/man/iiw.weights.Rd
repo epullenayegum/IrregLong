@@ -15,8 +15,7 @@ iiw.weights(
   invariant = NULL,
   maxfu,
   lagfirst = lagfirst,
-  first,
-  frailty = FALSE
+  first
 )
 }
 \arguments{
@@ -41,8 +40,6 @@ iiw.weights(
 \item{lagfirst}{A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
 
 \item{first}{logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.}
-
-\item{frailty}{logical variable. If TRUE, a frailty model is fit to calculate the inverse intensity weights. If FALSE, a marginal semi-parametric model is fit. Frailty models are helpful when fitting semi-parametric joint models.}
 }
 \value{
 a vector of inverse-intensity weights, ordered on id then time

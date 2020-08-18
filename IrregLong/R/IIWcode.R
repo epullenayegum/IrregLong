@@ -1,6 +1,5 @@
 
 #' @import stats survival geepack
-#' @importFrom frailtypack frailtyPenal
 #' @importFrom stats runif formula model.matrix predict terms
 #' @importFrom graphics plot points segments
 #' @importFrom data.table data.table setkey rbindlist
@@ -253,7 +252,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 
 	# sort the data on id then time
 	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
-	weights <- iiw.weights(formulaph, formulanull,data=data,id=id,time=time,event=event,lagvars=lagvars,invariant=invariant,maxfu=maxfu,first=first,lagfirst=lagfirst,frailty=FALSE)
+	weights <- iiw.weights(formulaph, formulanull,data=data,id=id,time=time,event=event,lagvars=lagvars,invariant=invariant,maxfu=maxfu,first=first,lagfirst=lagfirst)
 	data$useweight <- weights$iiw.weight
 	m <- weights$m
 
@@ -281,7 +280,6 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
 #' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
-#' @param frailty logical variable. If TRUE, a frailty model is fit to calculate the inverse intensity weights. If FALSE, a marginal semi-parametric model is fit. Frailty models are helpful when fitting semi-parametric joint models.
 #' @return a vector of inverse-intensity weights, ordered on id then time
 #' @description Since the vector of weights is ordered on id and time, if you intend to merge these weights onto your original dataset it is highly recommended that you sort the data before running iiw.weights
 #' @references
@@ -317,9 +315,10 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' @family iiw
 #' @export
 
-iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invariant=NULL,maxfu,lagfirst=lagfirst,first,frailty=FALSE){
+iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invariant=NULL,maxfu,lagfirst=lagfirst,first){
   # frailty models will fail if no censoring observations so create artificially censored observations
-	if(is.null(maxfu) & frailty){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
+  # no longer needed now that frailtyPenal has been replaced with coxme
+#	if(is.null(maxfu) & frailty){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
 
   # sort by id and time
 	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
@@ -343,49 +342,22 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 	# create weights
 
 	# add rows corresponding to censoring times
-	if(!is.null(maxfu)|frailty){	datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event)}
+	if(!is.null(maxfu)){	datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invarcols,id=id,time=time,event=event)}
 	if(is.null(maxfu)) datacox <- data
 
 	# lag variables
 	datacox <- lagfn(datacox,lagvars,id,time,lagfirst)
 
 	# fit the visit intensity model and compute weights
-	if(!frailty){
+
 	m <- coxph(formula=formulaph,data=datacox)
 	data$iiw.weight <- iiw(m,lagfn(data,lagvars,id,time,lagfirst),id,time,first)
 	if(stabilize){
 		m0 <- coxph(formula=formulanull,data=datacox)
 		data$nullweight <- iiw(m0,data,id,time,first)
 		data$useweight <- data$iiw.weight/data$nullweight
-	} else{ data$useweight <- data$iiw.weight}
-	}
-	if(frailty){
-    row.names(datacox)[datacox$event==1] <- row.names(data)
-	  use <- (1:nrow(datacox))[!is.na(datacox[,names(datacox)%in%paste(time,".lag",sep="")])]
-	  		m <- frailtyPenal(formula=formulaph,data=datacox[use,], recurrentAG=TRUE, n.knots=6, kappa=10000,cross.validation=TRUE)
+	} else{data$useweight <- data$iiw.weight}
 
-		omit <- c("(Intercept)",paste("cluster(",id,")",sep=""))
-		Xmat <- model.matrix(terms(formula(m)),data=datacox)
-		columns <- colnames(Xmat)
-		Xmat.use <- Xmat[row.names(Xmat)%in%row.names(data),!columns%in%omit]
-		Xmat.use <- array(Xmat.use,dim=c(nrow(Xmat[row.names(Xmat)%in%row.names(data),]),length(columns[!columns%in%omit])))
-		data$iiw.weight[row.names(data)%in%row.names(Xmat)] <- exp(-Xmat.use%*%m$coef)
-
-    # stabilize the weights, if required
-		if(stabilize){
-		m0 <- frailtyPenal(formula=formulanull,data=datacox[use,],recurrentAG=TRUE,n.knots=6,kappa=10000,cross.validation=TRUE)
-		omit <- c("(Intercept)",paste("cluster(",id,")",sep=""))
-
-		Xmat <- model.matrix(terms(formula(m0)),data=datacox)
-		columns <- colnames(Xmat)
-		Xmat.use <- Xmat[row.names(Xmat)%in%row.names(data),!columns%in%omit]
-		Xmat.use <- array(Xmat.use,dim=c(nrow(Xmat[row.names(Xmat)%in%row.names(data),]),length(columns[!columns%in%omit])))
-
-		data$null.weight[row.names(data)%in%row.names(Xmat)] <- exp(-Xmat.use%*%m0$coef)
-				data$useweight <- data$iiw.weight/data$null.weight
-	} else{ data$useweight <- data$iiw.weight; m0 <- NULL}
-
-	}
 	if(stabilize==FALSE) m0 <- NULL
 	tmin <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],min)
 	firstvisit <- as.numeric(data[,names(data)%in%time]==tmin[data[,names(data)%in%id]])
@@ -594,8 +566,6 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #' @param baseline An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.
 #' @param Xfn A function that takes as its first argument the subject identifier and has time as its second argument, and returns the value of X for the specified subject at the specified time.
 #' @param Wfn A function that takes as its first argument the subject identifier and has time as its second argument, and returns the value of W for the specified subject at the specified time
-#' @param n.knots integer giving the number of knots to use in fitting the frailty model. See documentation for frailtyPenal for more details
-#' @param kappa positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more details
 #' @param ... other arguments to Xfn and Yfn
 #' @details The Liang method requires a value of X and W for every time over the observation period. If Xfn is left as NULL, then the Liang function will use, for each subject and for each time t, the values of X and W at the observation time closest to t.
 #' @return the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
@@ -641,20 +611,20 @@ mo <- function(noutput,fn,data,weights,singleobs,id,time,keep.first,var=TRUE,...
 #'  res <- Liang(data=data, id="id",time="t",Yname="y",
 #'             Xnames=c("X1","X2"),
 #'             Wnames=c("X2"),Znames=c("X1","X2"), formulaobs=Surv(t.lag,t,event)~X1
-#'             + X2+ cluster(id),invariant=c
+#'             + X2+ frailty(id),invariant=c
 #'             ("id","X1","X2"),lagvars="t",lagfirst=NA,maxfu=maxfu,
-#'             baseline=1,n.knots=6, kappa=10000)
+#'             baseline=1)
 #'  return(res)
 #'  }
 #'  # change n to 500 to replicate results of Liang et al.
 #'  n <- 10
 #'  s <- lapply(1:n,sim1,nsubj=200)
-#'  smat <- matrix(unlist(s),byrow=TRUE,ncol=2)
+#'  smat <- matrix(unlist(s),byrow=TRUE,ncol=4)
 #'  apply(smat,2,mean)
 #'  }
 
 
-Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,time, invariant=NULL,lagvars=NULL,lagfirst=NULL,maxfu,baseline,n.knots=NULL,kappa=NULL,Xfn=NULL,Wfn=NULL,... ){
+Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,time, invariant=NULL,lagvars=NULL,lagfirst=NULL,maxfu,baseline,Xfn=NULL,Wfn=NULL,... ){
 
   # If no covariates in the visit intensity model
   if(is.null(formulaobs)){
@@ -842,22 +812,27 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
     row.names(datacoxuse) <- 1:nrow(datacoxuse)
 
     # fit frailty model
-    mcov <- frailtyPenal(formula=formulaobs,data=datacoxuse, recurrentAG=TRUE, n.knots=n.knots,kappa=kappa,cross.validation=TRUE,print.times=FALSE)
+    mcov <- coxph(formula=formulaobs,data=datacoxuse)
+    data$lp <- Z%*%mcov$coefficients
+    lp <- tapply(data$lp,data[,names(data)%in%id],mean,na.rm=TRUE)
+    print(summary(mcov))
+    print(summary(lp))
 
-    omit <- c("(Intercept)",paste("cluster(",id,")",sep=""))
-    data$lp <- Z%*%mcov$coef
 
 
     # Compute cumulative hazard Lambdahat
-    indexfn <- function(x) return(sum(as.numeric(mcov$x<=x)))
-    indexfns <- function(x) return(sapply(x,indexfn))
-    Hazard0 <- -log(mcov$surv[,1,1])[indexfns(Ci)]
-    Hazard0[Hazard0==0] <- -log(mcov$surv[,1,1])[2]
-    lp <- tapply(data$lp,data[,names(data)%in%id],mean,na.rm=TRUE)
+    data0 <- data
+    if(baseline==1){ data0 <- data[data[,names(data)%in%time]>0,]}
+    integrand <- cbind(data0[,names(data0)%in%time],data0$event,1/apply(sweep(outer(Ci,data0[,names(data0)%in%time],">="),1,exp(lp),"*"),2,sum))
+    Hazard0fn <- function(t) return(sum(integrand[integrand[,1]<=t & integrand[,2]==1,3]))
+    Hazard0fns <- function(t) return(sapply(t,Hazard0fn))
+    Hazard0 <- Hazard0fns(Ci)
+
+
     Lambdahat <- Hazard0*exp(lp)
 
     # this is the frailty variance
-    sigmahatsq <- mcov$theta
+    sigmahatsq <- mcov$history[[1]]$history[nrow(mcov$history[[1]]$history),1]
        print(paste("sigmahatsq=",sigmahatsq,sep=""))
 
     # compute estimate of B

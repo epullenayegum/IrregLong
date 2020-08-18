@@ -59,7 +59,6 @@ library(IrregLong)
 library(MEMSS)
 library(survival)
 library(geepack)
-library(frailtypack)
 library(data.table)
 ```
 
@@ -278,9 +277,9 @@ data$ApgarInd.time3 <- as.numeric(data$ApgarInd)*((data$time/24)^3)
 set.seed(301031)
 ifrailty <- iiw.weights(Surv(time.lag,time,event)~I(conc.lag>0 & conc.lag<=20) + 
                 I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)   
-                      +cluster(id),id="id",time="time",event="event",data=data,     
+                      +frailty(id),id="id",time="time",event="event",data=data,     
                       invariant=c("id"),lagvars=c("time","conc"),maxfu=16*24,
-                      lagfirst=c(0,0), first=FALSE,frailty=TRUE)
+                      lagfirst=c(0,0), first=FALSE)
 
 wt <- ifrailty$iiw.weight
 

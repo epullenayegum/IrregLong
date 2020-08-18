@@ -18,8 +18,6 @@ Liang(
   lagfirst = NULL,
   maxfu,
   baseline,
-  n.knots = NULL,
-  kappa = NULL,
   Xfn = NULL,
   Wfn = NULL,
   ...
@@ -51,10 +49,6 @@ Liang(
 \item{maxfu}{The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.}
 
 \item{baseline}{An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.}
-
-\item{n.knots}{integer giving the number of knots to use in fitting the frailty model. See documentation for frailtyPenal for more details}
-
-\item{kappa}{positive smoothing parameter in the penalized likelihood estimation. See documentation for frailtyPenal for more details}
 
 \item{Xfn}{A function that takes as its first argument the subject identifier and has time as its second argument, and returns the value of X for the specified subject at the specified time.}
 
@@ -113,15 +107,15 @@ while(tlast+wait<C){
  res <- Liang(data=data, id="id",time="t",Yname="y",
             Xnames=c("X1","X2"),
             Wnames=c("X2"),Znames=c("X1","X2"), formulaobs=Surv(t.lag,t,event)~X1
-            + X2+ cluster(id),invariant=c
+            + X2+ frailty(id),invariant=c
             ("id","X1","X2"),lagvars="t",lagfirst=NA,maxfu=maxfu,
-            baseline=1,n.knots=6, kappa=10000)
+            baseline=1)
  return(res)
  }
  # change n to 500 to replicate results of Liang et al.
  n <- 10
  s <- lapply(1:n,sim1,nsubj=200)
- smat <- matrix(unlist(s),byrow=TRUE,ncol=2)
+ smat <- matrix(unlist(s),byrow=TRUE,ncol=4)
  apply(smat,2,mean)
  }
 }
