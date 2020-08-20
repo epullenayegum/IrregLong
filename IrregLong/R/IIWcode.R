@@ -953,8 +953,7 @@ abacus.plot <- function(n,time,id,data,tmin,tmax,xlab.abacus="Time",ylab.abacus=
 #' data <- data[data$event==1,]
 #' data$id <- as.numeric(data$Subject)
 #' counts <- extent.of.irregularity(data,time="time",id="id",scheduledtimes=NULL,
-#' cutpoints=NULL,ncutpts=10,
-#' maxfu=16*24,plot=TRUE,legendx=NULL,legendy=NULL,formula=Surv(time.lag,time,event)~1,tau=16*24)
+#' cutpoints=NULL,ncutpts=10, maxfu=16*24,plot=TRUE,legendx=NULL,legendy=NULL,formula=Surv(time.lag,time,event)~1,tau=16*24)
 #' counts$counts
 #' counts$auc
 #' @export
