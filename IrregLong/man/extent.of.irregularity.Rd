@@ -55,17 +55,3 @@ Provides visual and numeric measures of the extent of irregularity in observatio
 \details{
 This function provides plots and a numerical summary of the extent of irregularity in visit times. For any given set of cutpoints, it computes the proportion of individuals with 0, 1 and >1 observation(s) in each bin, then takes the mean over bins. The sizes of the bins are varied and these proportions are plotted against bin size. In addition, then mean proportion of individuals with >1 visit per bin is plotted vs. the mean proportion of individuals with 0 visits per bin, and the area under the curve is calculated (AUC). An AUC of 0 represents perfect repeated measures while a Poisson Process has an AUC of 0. If cutpoints are not supplied, they are computed as follows: (a) for studies with protocolized visit times, the left- and right-hand cutpoints are positioned at the protocolized time minus (or plus, for right-hand cutpoints) (1,...,ncutpts)/ncutpts times the gap to the previous (or next, respectively) protocolized visit time; (b) for studies with no protocolized visit times, cutpoints are calculated by finding, for each j in {1,...,ncutpts} the largest times for which the cumulative hazard is less than j divided by the cumulative hazard evaluated at the maximum time of interest. This corresponds to choosing cutpoints such that the expected number of visits per bin is roughly equal within each set.
 }
-\examples{
-library(nlme)
-library(survival)
-data(Phenobarb)
-Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
-data <- Phenobarb
-data <- data[data$event==1,]
-data$id <- as.numeric(data$Subject)
-counts <- extent.of.irregularity(data,time="time",id="id",scheduledtimes=NULL,
-cutpoints=NULL,ncutpts=10,
-maxfu=16*24,plot=TRUE,legendx=NULL,legendy=NULL,formula=Surv(time.lag,time,event)~1,tau=16*24)
-counts$counts
-counts$auc
-}

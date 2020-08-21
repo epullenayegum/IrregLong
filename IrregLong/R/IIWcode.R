@@ -944,18 +944,18 @@ abacus.plot <- function(n,time,id,data,tmin,tmax,xlab.abacus="Time",ylab.abacus=
 #' @param formula For studies without protocolized visit times, the formula for the null counting process model for the visit times
 #' @param tau The maximum time of interest
 #' @return a list with counts equal to a 3-dimensional by ncutpts matrix giving, for each set of cutpoints, the mean proportion of individuals with zero, 1 and >1 visits per bin, and AUC, the area under the curve of the plot of the proportion of individuals with >1 visit per bin vs. the proportion of individuals with 0 visits per bin.
-#' @examples
-#' library(nlme)
-#' library(survival)
-#' data(Phenobarb)
-#' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
-#' data <- Phenobarb
-#' data <- data[data$event==1,]
-#' data$id <- as.numeric(data$Subject)
-#' counts <- extent.of.irregularity(data,time="time",id="id",scheduledtimes=NULL,
-#' cutpoints=NULL,ncutpts=10, maxfu=16*24,plot=TRUE,legendx=NULL,legendy=NULL,formula=Surv(time.lag,time,event)~1,tau=16*24)
-#' counts$counts
-#' counts$auc
+# @examples
+# library(nlme)
+# library(survival)
+# data(Phenobarb)
+# Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
+# data <- Phenobarb
+# data <- data[data$event==1,]
+# data$id <- as.numeric(data$Subject)
+# counts <- extent.of.irregularity(data,time="time",id="id",scheduledtimes=NULL,
+# cutpoints=NULL,ncutpts=10, maxfu=16*24,plot=TRUE,legendx=NULL,legendy=NULL,formula=Surv(time.lag,time,event)~1,tau=16*24)
+# counts$counts
+# counts$auc
 #' @export
 
 extent.of.irregularity <- function(data,time="time",id="id",scheduledtimes=NULL,cutpoints=NULL,ncutpts=NULL,maxfu=NULL,plot=FALSE,legendx=NULL,legendy=NULL,formula=NULL,tau=NULL){
