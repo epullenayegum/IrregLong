@@ -36,7 +36,7 @@ The IrregLong package will help you assess how irregular the assessment times ar
 You can install the development version of IrregLong through Github:
 
 ```{r eval=FALSE}
-devtools::install_github("epullenayegum/Irreglong/Irreglong")
+devtools::install_github("epullenayegum/Irreglong")
 ```
 
 ## Examining the extent of irregularity
