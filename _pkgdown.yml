@@ -1,0 +1,54 @@
+
+
+url: https://epullenayegum.github.io/IrregLong/
+
+template:
+  bootstrap: 5
+home:
+  title: R package IrregLong for analysing longitudinal data with irregular observation
+    times
+  description: |2
+
+    This package contains functions to help with analysis of longitudinal data featuring irregular observation times, where the observation times may be associated with the outcome process. There are functions to quantify the degree of irregularity, fit inverse-intensity weighted GEEs (Lin H, Scharfstein DO, Rosenheck RA (2004) <doi:10.1111/j.1467-9868.2004.b5543.x>), perform multiple outputation (Pullenayegum EM (2016) <doi:10.1002/sim.6829>) and fit semi-parametric joint models (Liang Y (2009) <doi: 10.1111/j.1541-0420.2008.01104.x>)
+authors:
+  Eleanor Pullenayegum:
+    href: https://lab.research.sickkids.ca/pullenayegum/
+news:
+  one_page: yes
+reference:
+- title: Examining the extent of irregularity
+  desc: |
+    Functions for examining the extent of irregularity in observation times
+  contents:
+  - abacus.plot
+  - extent.of.irregularity
+- title: Using inverse-intensity weighting
+  desc: |
+    Using inverse-intensity weighting to account for irregular and informative observation times
+  contents:
+  - iiw.weights
+  - iiwgee
+  - iiw
+- title: Multiple Outputation
+  desc: |
+    Functions for performing multiple outputation
+  contents:
+  - mo
+  - outputation
+- title: Semi-parametric joint model
+  desc: |
+    Functions for fitting the Liang semi-parametric joint model
+  contents: Liang
+- title: Low-level functions
+  desc: |
+    Functions for constructing the inverse-intensity weights manually
+  contents:
+  - addcensoredrows
+  - lagfn
+articles:
+- title: Vignette
+  navbar: ~
+  contents: Irreglong-vignette
+navbar:
+  type: inverse
+
