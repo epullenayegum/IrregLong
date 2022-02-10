@@ -5,3 +5,4 @@ cran-comments.md
 NEWS.Rmd
 README.Rmd
 
+^\.github$
