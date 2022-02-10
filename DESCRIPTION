@@ -1,0 +1,20 @@
+Package: IrregLong
+Type: Package
+Title: Analysis of Longitudinal Data with Irregular Observation Times
+Version: 0.3.4
+Date: 2022-02-01
+Author: Eleanor Pullenayegum
+Maintainer: Eleanor Pullenayegum <eleanor.pullenayegum@sickkids.ca>
+Description: This package contains functions to help with analysis of longitudinal data featuring irregular observation times, where the observation times may be associated with the outcome process. There are functions to quantify the degree of irregularity, fit inverse-intensity weighted GEEs (Lin H, Scharfstein DO, Rosenheck RA (2004) <doi:10.1111/j.1467-9868.2004.b5543.x>), perform multiple outputation (Pullenayegum EM (2016) <doi:10.1002/sim.6829>) and fit semi-parametric joint models (Liang Y (2009) <doi: 10.1111/j.1541-0420.2008.01104.x>).
+Depends: R (>= 2.10)
+Imports: survival, geepack, data.table, graphics
+License: GPL-3
+RoxygenNote: 7.1.2
+Suggests: knitr,
+    rmarkdown,
+    nlme,
+    MEMSS
+VignetteBuilder: knitr
+LazyData: true
+Language: en-GB
+URL: https://epullenayegum.github.io/IrregLong/

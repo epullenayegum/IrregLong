@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Eleanor M. Pullenayegum" />
+
+<meta name="date" content="2018-12-19" />
+
+<title>Analysis of longitudinal data with irregular observation times</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Analysis of longitudinal data with irregular observation times</h1>
+<h4 class="author"><em>Eleanor M. Pullenayegum</em></h4>
+<h4 class="date"><em>2018-12-19</em></h4>
+
+
+
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>Longitudinal data often has follow-up times that are irregular and potentially related to outcomes. For example, in a clinic-based cohort study where all follow-up is part of usual care, patients may visit more often when unwell. This risks over-estimating the burden of disease unless data are analysed appropriately.</p>
+<p>There are two categories of methods available for analysing this type of data: methods based on inverse-intensity weighting, and methods based on semi-parametric joint models (see <span class="citation">Pullenayegum and Lim (In Press)</span> for an overview). This package provides methods for inverse-intensity weighting.</p>
+<p>Inverse-intensity weighting weights data by the reciprocal of the intensity (or, equivalently, the hazard) of the visit process. Inverse-intensity weighting works in a similar way to survey weighting: observations with a higher intensity are over-represented in the data, and hence should receive less weight. Conversely, observations with lower intensity are under-represented in the data, and hence receive more weight. <span class="citation">Lin, Scharfstein, and Rosenheck (2004)</span> show that inverse-intensity weighting followed by a marginal analysis with a generalized estimating equation (GEE) results in unbiased estimation, subject to the assumptions set out below. This package contains functions to compute inverse-intensity weights, and also to fit inverse-intensity weighted GEEs.</p>
+<p>Sometimes inference may be desired for a model for which weighting is not straightforward, for example a generalized linear mixed model or a latent class mixed model. In these cases, multiple outputation is a useful alternative to invese-intensity weighting.</p>
+<p>Multple outputation works by discarding (outputting) excess data <span class="citation">(Hoffman, Sen, and Weinberg 2001; Follmann, Proschan, and Leifer 2003)</span>. Visits are randomly deleted from the dataset with probability inversely proportional to the visit intensity <span class="citation">(Pullenayegum 2016)</span>. The resulting thinned visit process is independent of the outcome process (subject to the assumptions below), and can hence be analysed using standard methods. To avoid wasting data, the random deletion is repeated multiple times and the results from each analysis combined. Conceptually, multiple outputation is the opposite of multiple imputation: where multiple imputation imputes missing observations multiple times, multiple outputation discards excess observations multiple times. This package contains functions to create outputted datasets, as well as to combine results across multiple outputations.</p>
+</div>
+<div id="assumptions" class="section level2">
+<h2>Assumptions</h2>
+<p>Inverse-intensity methods, whether implemented through weighting or multiple outputation, are subject to the following assumptions.</p>
+<p>Suppose <span class="math inline">\(Y_i(t)\)</span> is the outcome of interest for subject <span class="math inline">\(i\)</span> at time <span class="math inline">\(t\)</span>, let <span class="math inline">\(X_i(t)\)</span> be a possibly time-dependent covariate, and suppose interest is in the marginal model <span class="math display">\[E(Y_i(t)|X_i(t))=X_i(t)\beta.\]</span> Moreover, suppose that we observe <span class="math inline">\(Y_i\)</span> only at times <span class="math inline">\(T_{i1},T_{i2},\ldots, T_{in_i}\)</span>. Let <span class="math inline">\(N_i(t)\)</span> be the counting process for the visit times, that is <span class="math inline">\(N_i(t)=\sum_{j}I(T_{ij}\leq t)\)</span>, where <span class="math inline">\(I()\)</span> is an indicator function. Inverse-intensity weighting methods hinge on there being a vector of observed covariates <span class="math inline">\(Z_i(t)\)</span> such that <span class="math display">\[\lim_{\delta \downarrow 0} \frac{E(N(t)-N(t-\delta))|Y_i(t),Z_i(t))}{\delta}=\frac{E(N(t)-N(t-\delta))|Z_i(t))}{\delta}=\lambda(t;Z_i(t))\]</span> for some hazard function <span class="math inline">\(\lambda\)</span>. If this assumption is not met, altnerative methods of analysis should be considered (e.g. semi-parametric joint models).</p>
+</div>
+<div id="inverse-intensity-weighting" class="section level2">
+<h2>Inverse-Intensity weighting</h2>
+<p>The first step in inverse-intensity weighting is to calculate the weights, usually by fitting a proportional hazards model to the recurrent event process formed by the visit times. That is, one fits the model <span class="math display">\[\lambda(t;Z_i(t))=\lambda_0(t)\exp(Z_i(t)\gamma).\]</span> The inverse-intensity weight is then <span class="math inline">\(w_i(t) = \frac{\exp(-Z_i(t)\gamma)}{\lambda_0(t)}\)</span>. Following <span class="citation">Buzkova and Lumley (2007)</span>, all inverse-intensity weights in this package are stabilized by the baseline hazard <span class="math inline">\(\lambda_0(t)\)</span>, so that the stabilized weight is <span class="math inline">\(sw_i(t)=\exp(-Z_i(t)\gamma)\)</span>. In some settings one may additionally wish to stabilize by a function of the time-invariant covariates in <span class="math inline">\(X_i(t)\)</span>, and an option to do so is included in the functions. One can then fit a GEE to obtain the regression coefficients <span class="math inline">\(\beta\)</span> corresponding to regressing <span class="math inline">\(Y_i(t)\)</span> on <span class="math inline">\(X_i(t)\)</span>, weighting by <span class="math inline">\(sw_i(t)\)</span>.</p>
+<div id="example" class="section level3">
+<h3>Example</h3>
+<p>These methods are illustrated using the Phenobarb dataset from the MEMSS package. Routine clinical pharmacokinetic data were collected from 59 preterm infants who received phenobarbital in order to prevent suizures. Blood draws were taken to determine serum concentration of phenobarbital, with the timing and number of draws varying among infants. For the purposes of illustration this analysis foucses not on pharmacokinetics but on the mean serum concentration of phenobarbital over time.</p>
+<p>This dataset contains some rows corresponding to times at which phenobarbital given and others at which a blood draw was taken to determine serum phenobarbital concentration. Analysis shows that once previous serum concentration is accounted for, dose is uninformative about the timing of blood draws, and hence we remove rows at which concentration was not measured. Moreover, the IrregLong package requires the variable identifying subjects to be numeric rather than a factors, so we create a new, numeric id variable. Finally, since all rows now correspond to events, we set the event indicator to be 1 throughout the whole dataset.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(IrregLong)
+<span class="kw">library</span>(MEMSS)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(Phenobarb)
+Phenobarb<span class="op">$</span>id &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(Phenobarb<span class="op">$</span>Subject)
+Phenobarb<span class="op">$</span>event &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(<span class="kw">is.finite</span>(Phenobarb<span class="op">$</span>conc))
+Phenobarb.conc &lt;-<span class="st"> </span>Phenobarb[<span class="kw">is.finite</span>(Phenobarb<span class="op">$</span>conc),]
+<span class="kw">head</span>(Phenobarb.conc)</code></pre></div>
+<pre><code>##    Subject  Wt Apgar ApgarInd  time dose conc id event
+## 2        1 1.4     7     &gt;= 5   2.0   NA 17.3  1     1
+## 12       1 1.4     7     &gt;= 5 112.5   NA 31.0  1     1
+## 14       2 1.5     9     &gt;= 5   2.0   NA  9.7 12     1
+## 20       2 1.5     9     &gt;= 5  63.5   NA 24.6 12     1
+## 27       2 1.5     9     &gt;= 5 135.5   NA 33.0 12     1
+## 29       3 1.5     6     &gt;= 5   1.5   NA 18.0 23     1</code></pre>
+<p>To fit an inverse intensity weighted GEE, one begins by modelling the visit intensity. Although the IrregLong package includes a function that calculates both the inverse-intensity weights and the weighted GEE in a single command, we suggest starting by focussing on the visit intensity model. Modelling is usually done through a Cox proportional hazards model on the recurrent visit process. To do this, we need to specify time periods at risk, and so need to lag the time variable. If there are time-dependent covariates and we suspect that the value at the last measurement is predictive of when the next measurement will be taken, these time-dependent covariates must also be lagged. The IrregLong package simplifies this process by allowing the user to specify which covariates should be lagged (lagvars=c(“time”,“conc”)) and creating these lagged covariates internally (time.lag,conc.lag). The value of the lagged variables will by default be missing for the first observation in each subject, but this can be changed through the lagfirst argument. We set the lagged value of time at the first observed blood draw to be zero (lagfirst=0) since observation started at birth for all infants. Similarly, we set the lagged value of serum phenobarbital concentration to be zero at the first draw, since the last known value of serum concentration was at birth, prior to administration of phernobarbital. However, since it is reasonable to expect that the effect of last known concentration on the time to the next blood draw may differ between the first and subsequent draws, we include a separate effect for whether the last known concentration was positive (equivalent to whehter this is the first blood draw).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">i &lt;-<span class="st"> </span><span class="kw">iiw.weights</span>(<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span>Wt <span class="op">+</span><span class="st"> </span>Apgar <span class="op">+</span><span class="st"> </span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(Subject),<span class="dt">id=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">FALSE</span>)
+i<span class="op">$</span>m</code></pre></div>
+<pre><code>## Call:
+## coxph(formula = formulaph, data = datacox)
+## 
+##                        coef exp(coef) se(coef) robust se     z       p
+## Wt                  -0.1212    0.8858   0.1630    0.1632 -0.74   0.458
+## Apgar10              0.0452    1.0462   0.7074    0.4903  0.09   0.927
+## Apgar2               0.1108    1.1172   0.5424    0.4627  0.24   0.811
+## Apgar3               0.2735    1.3146   0.6484    0.8265  0.33   0.741
+## Apgar4              -1.8132    0.1631   0.6530    0.8981 -2.02   0.043
+## Apgar5              -0.6100    0.5434   0.4019    0.4349 -1.40   0.161
+## Apgar6              -0.2303    0.7943   0.3861    0.4907 -0.47   0.639
+## Apgar7              -0.5953    0.5514   0.3744    0.4582 -1.30   0.194
+## Apgar8              -0.2086    0.8117   0.3762    0.4566 -0.46   0.648
+## Apgar9              -0.4827    0.6171   0.4329    0.4694 -1.03   0.304
+## I(conc.lag &gt; 0)TRUE -2.0514    0.1286   0.5262    0.5216 -3.93 8.4e-05
+## conc.lag            -0.0435    0.9574   0.0182    0.0203 -2.14   0.032
+## 
+## Likelihood ratio test=78.2  on 12 df, p=9.05e-12
+## n= 155, number of events= 155</code></pre>
+<p>Since birth weight and Apgar score are not significant, we consider whether the model can be simplified - first by including Apgar score as an indicator (<span class="math inline">\(\geq 5\)</span> vs. <span class="math inline">\(&lt;5\)</span>), then by removing variables that are not significant.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">i &lt;-<span class="st"> </span><span class="kw">iiw.weights</span>(<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span>Wt <span class="op">+</span><span class="st"> </span>ApgarInd <span class="op">+</span><span class="st"> </span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(Subject),<span class="dt">id=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">FALSE</span>)
+i<span class="op">$</span>m</code></pre></div>
+<pre><code>## Call:
+## coxph(formula = formulaph, data = datacox)
+## 
+##                        coef exp(coef) se(coef) robust se     z      p
+## Wt                  -0.0100    0.9900   0.1261    0.1067 -0.09 0.9250
+## ApgarInd&gt;= 5        -0.0633    0.9387   0.2318    0.3152 -0.20 0.8409
+## I(conc.lag &gt; 0)TRUE -1.5689    0.2083   0.4703    0.4950 -3.17 0.0015
+## conc.lag            -0.0361    0.9646   0.0171    0.0168 -2.15 0.0316
+## 
+## Likelihood ratio test=62.7  on 4 df, p=7.84e-13
+## n= 155, number of events= 155</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">i &lt;-<span class="st"> </span><span class="kw">iiw.weights</span>(<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span>ApgarInd <span class="op">+</span><span class="st"> </span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(Subject),<span class="dt">id=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">FALSE</span>)
+i<span class="op">$</span>m</code></pre></div>
+<pre><code>## Call:
+## coxph(formula = formulaph, data = datacox)
+## 
+##                        coef exp(coef) se(coef) robust se     z      p
+## ApgarInd&gt;= 5        -0.0640    0.9380   0.2315    0.3180 -0.20 0.8404
+## I(conc.lag &gt; 0)TRUE -1.5661    0.2089   0.4693    0.4832 -3.24 0.0012
+## conc.lag            -0.0362    0.9644   0.0170    0.0162 -2.24 0.0250
+## 
+## Likelihood ratio test=62.7  on 3 df, p=1.56e-13
+## n= 155, number of events= 155</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">i &lt;-<span class="st"> </span><span class="kw">iiw.weights</span>(<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(Subject),<span class="dt">id=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">FALSE</span>)
+i<span class="op">$</span>m</code></pre></div>
+<pre><code>## Call:
+## coxph(formula = formulaph, data = datacox)
+## 
+##                        coef exp(coef) se(coef) robust se     z      p
+## I(conc.lag &gt; 0)TRUE -1.5943    0.2031   0.4590    0.4988 -3.20 0.0014
+## conc.lag            -0.0359    0.9647   0.0170    0.0159 -2.26 0.0241
+## 
+## Likelihood ratio test=62.6  on 2 df, p=2.52e-14
+## n= 155, number of events= 155</code></pre>
+<p>It thus appears that after accounting for the concentration at the last draw, the other covariates are not important predictors of visit intensity.</p>
+<p>Having established a model for the weights, we now turn to modeling the serum concentration as a function of time. A plot of concentration over time shows that the relationship is unlikely to be linear, even in the weighted data. We thus use fractional polynomials to model the shape of the association over time.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(Phenobarb<span class="op">$</span>time,Phenobarb<span class="op">$</span>conc,<span class="dt">xlim=</span><span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">200</span>),<span class="dt">pch=</span><span class="dv">16</span>)</code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --> Fractional polynomials consider powers of -2, -1, -0.5, 0.5, 1, 2, 3, and a log-transform, and use the best-fitting from among these. We use the adjusted R-squared as a measure of goodness of fit. Since weighting tends not to lead to dramatic changes in the  of the relationship between outcome and covariates, we use the unweighted data to choose the functional form of time.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rsq1 &lt;-<span class="st"> </span><span class="kw">array</span>(<span class="dt">dim=</span><span class="dv">8</span>)
+rsq1[<span class="dv">1</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span>time,<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq1[<span class="dv">2</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">I</span>((time)<span class="op">^</span><span class="fl">0.5</span>),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq1[<span class="dv">3</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">I</span>((time)<span class="op">^</span><span class="dv">2</span>),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq1[<span class="dv">4</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">I</span>((time)<span class="op">^</span><span class="dv">3</span>),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq1[<span class="dv">5</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">log</span>(time),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq1[<span class="dv">6</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">I</span>((time)<span class="op">^</span>(<span class="op">-</span><span class="fl">0.5</span>)),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq1[<span class="dv">7</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">I</span>((time)<span class="op">^</span>(<span class="op">-</span><span class="dv">1</span>)),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq1[<span class="dv">8</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">I</span>((time)<span class="op">^</span>(<span class="op">-</span><span class="dv">2</span>)),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+<span class="kw">which.max</span>(rsq1)</code></pre></div>
+<pre><code>## [1] 5</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rsq1[<span class="kw">which.max</span>(rsq1)]</code></pre></div>
+<pre><code>## [1] 0.1687916</code></pre>
+<p>Based on this, we choose the log transform of time, and now-consider whether a second order fractional polynomial would improve the fit. This involves adding, in turn, each of the powers previously considered, as well as <span class="math inline">\(time\times\log(time)\)</span>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rsq2 &lt;-<span class="st"> </span><span class="kw">array</span>(<span class="dt">dim=</span><span class="dv">8</span>)
+rsq2[<span class="dv">1</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">log</span>(time)<span class="op">+</span><span class="st"> </span>time,<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq2[<span class="dv">2</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">log</span>(time)<span class="op">+</span><span class="st"> </span><span class="kw">I</span>((time)<span class="op">^</span><span class="fl">0.5</span>),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq2[<span class="dv">3</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">log</span>(time) <span class="op">+</span><span class="st"> </span><span class="kw">I</span>((time)<span class="op">^</span><span class="dv">2</span>),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq2[<span class="dv">4</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">log</span>(time)<span class="op">+</span><span class="st"> </span><span class="kw">I</span>((time)<span class="op">^</span><span class="dv">3</span>),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq2[<span class="dv">5</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">log</span>(time)<span class="op">+</span><span class="st"> </span>time<span class="op">:</span><span class="kw">log</span>(time),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq2[<span class="dv">6</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">log</span>(time) <span class="op">+</span><span class="st"> </span><span class="kw">I</span>((time)<span class="op">^</span>(<span class="op">-</span><span class="fl">0.5</span>))<span class="op">*</span><span class="kw">log</span>(<span class="dv">1</span><span class="op">+</span>time),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq2[<span class="dv">7</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">log</span>(time) <span class="op">+</span><span class="st"> </span><span class="kw">I</span>((time)<span class="op">^</span>(<span class="op">-</span><span class="dv">1</span>)),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+rsq2[<span class="dv">8</span>] &lt;-<span class="st"> </span><span class="kw">summary</span>(<span class="kw">lm</span>(conc<span class="op">~</span><span class="kw">log</span>(time)<span class="op">+</span><span class="st"> </span><span class="kw">I</span>((time)<span class="op">^</span>(<span class="op">-</span><span class="dv">2</span>)),<span class="dt">data=</span>Phenobarb.conc))<span class="op">$</span>adj.r.squared
+<span class="kw">which.max</span>(rsq2)</code></pre></div>
+<pre><code>## [1] 4</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rsq2[<span class="kw">which.max</span>(rsq2)]</code></pre></div>
+<pre><code>## [1] 0.3621251</code></pre>
+<p>We thus use time, log(time) and their interaction to describe concentration over time. The inverse-intensity-weighted GEE can be fitted using the function iiwgee. This function specifies first the formula for the GEE, then the formula for the inverse intensity weights.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">iiwgee &lt;-<span class="st"> </span><span class="kw">iiwgee</span>(conc <span class="op">~</span><span class="st"> </span>time<span class="op">*</span><span class="kw">log</span>(time),<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(id),<span class="dt">formulanull=</span><span class="ot">NULL</span>,<span class="dt">id=</span><span class="st">&quot;id&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;id&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">TRUE</span>)</code></pre></div>
+<p>Note that the iiwgee function does not include an option for the working variance. As discussed above, when working with inverse-intensity weights, the working variance should always be the identity. The iiwgee function returns the inverse-intensity weighted GEE fit:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(iiwgee<span class="op">$</span>geefit)</code></pre></div>
+<pre><code>## 
+## Call:
+## geeglm(formula = formulagee, family = family, data = data, weights = useweight, 
+##     id = iddup, corstr = &quot;independence&quot;)
+## 
+##  Coefficients:
+##                Estimate  Std.err    Wald Pr(&gt;|W|)    
+## (Intercept)    21.93906  1.35426 262.440  &lt; 2e-16 ***
+## time            1.69787  0.38247  19.706 9.03e-06 ***
+## log(time)      -6.61608  2.17003   9.295   0.0023 ** 
+## time:log(time) -0.27774  0.06025  21.246 4.04e-06 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Estimated Scale Parameters:
+##             Estimate Std.err
+## (Intercept)     65.3   31.89
+## 
+## Correlation: Structure = independenceNumber of clusters:   59   Maximum cluster size: 6</code></pre>
+<p>We can also verify that this is the same as deriving the weights through iiw.weights then inputting them as weights into geeglm:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">i &lt;-<span class="st"> </span><span class="kw">iiw.weights</span>(<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(Subject),<span class="dt">id=</span><span class="st">&quot;id&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">TRUE</span>)
+Phenobarb.conc<span class="op">$</span>weight[<span class="kw">order</span>(Phenobarb.conc<span class="op">$</span>id)] &lt;-<span class="st"> </span>i<span class="op">$</span>iiw.weight
+mw &lt;-<span class="st"> </span><span class="kw">geeglm</span>(conc <span class="op">~</span><span class="st"> </span>time<span class="op">*</span><span class="kw">log</span>(time) , <span class="dt">id=</span>Subject, <span class="dt">data=</span>Phenobarb.conc, <span class="dt">weights=</span>weight)
+<span class="kw">summary</span>(mw)</code></pre></div>
+<pre><code>## 
+## Call:
+## geeglm(formula = conc ~ time * log(time), data = Phenobarb.conc, 
+##     weights = weight, id = Subject)
+## 
+##  Coefficients:
+##                Estimate Std.err  Wald Pr(&gt;|W|)    
+## (Intercept)     21.9391  1.3543 262.4   &lt;2e-16 ***
+## time             1.6979  0.3825  19.7    9e-06 ***
+## log(time)       -6.6161  2.1700   9.3   0.0023 ** 
+## time:log(time)  -0.2777  0.0603  21.2    4e-06 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Estimated Scale Parameters:
+##             Estimate Std.err
+## (Intercept)     65.3    31.9
+## 
+## Correlation: Structure = independenceNumber of clusters:   59   Maximum cluster size: 6</code></pre>
+<p>For comparison, we also fit the unweighted GEE, and plot the two serum concentration trajectories</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">m &lt;-<span class="st"> </span><span class="kw">geeglm</span>(conc <span class="op">~</span><span class="st"> </span>time<span class="op">*</span><span class="kw">log</span>(time) , <span class="dt">id=</span>Subject, <span class="dt">data=</span>Phenobarb)
+time &lt;-<span class="st"> </span>(<span class="dv">1</span><span class="op">:</span><span class="dv">200</span>)
+unweighted &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="kw">rep</span>(<span class="dv">1</span>,<span class="dv">200</span>),time,<span class="kw">log</span>(time),time<span class="op">*</span><span class="kw">log</span>(time))<span class="op">%*%</span>m<span class="op">$</span>coefficients
+weighted &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="kw">rep</span>(<span class="dv">1</span>,<span class="dv">200</span>),time,<span class="kw">log</span>(time),time<span class="op">*</span><span class="kw">log</span>(time))<span class="op">%*%</span>iiwgee<span class="op">$</span>geefit<span class="op">$</span>coefficients
+<span class="kw">plot</span>(Phenobarb<span class="op">$</span>time,Phenobarb<span class="op">$</span>conc,<span class="dt">xlim=</span><span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">200</span>),<span class="dt">pch=</span><span class="dv">16</span>,<span class="dt">xlab=</span><span class="st">&quot;Time&quot;</span>,<span class="dt">ylab=</span><span class="st">&quot;Serum phenobarbital concentration&quot;</span>)
+<span class="kw">lines</span>(time,unweighted,<span class="dt">type=</span><span class="st">&quot;l&quot;</span>)
+<span class="kw">lines</span>(time,weighted,<span class="dt">col=</span><span class="dv">2</span>)
+<span class="kw">legend</span> (<span class="dv">0</span>,<span class="dv">60</span>,<span class="dt">legend=</span><span class="kw">c</span>(<span class="st">&quot;Unweighted&quot;</span>,<span class="st">&quot;Inverse-intensity weighted&quot;</span>),<span class="dt">col=</span><span class="dv">1</span><span class="op">:</span><span class="dv">2</span>,<span class="dt">bty=</span><span class="st">&quot;n&quot;</span>,<span class="dt">lty=</span><span class="dv">1</span>)</code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>The iiwgee function also returns the fitted visit intensity model:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(iiwgee<span class="op">$</span>phfit)</code></pre></div>
+<pre><code>## Call:
+## coxph(formula = formulaph, data = datacox)
+## 
+##   n= 155, number of events= 155 
+## 
+##                        coef exp(coef) se(coef) robust se     z Pr(&gt;|z|)   
+## I(conc.lag &gt; 0)TRUE -1.5943    0.2031   0.4590    0.4988 -3.20   0.0014 **
+## conc.lag            -0.0359    0.9647   0.0170    0.0159 -2.26   0.0241 * 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+##                     exp(coef) exp(-coef) lower .95 upper .95
+## I(conc.lag &gt; 0)TRUE     0.203       4.92    0.0764     0.540
+## conc.lag                0.965       1.04    0.9351     0.995
+## 
+## Concordance= 0.648  (se = 0.024 )
+## Rsquare= 0.332   (max possible= 0.999 )
+## Likelihood ratio test= 62.6  on 2 df,   p=2.52e-14
+## Wald test            = 40.8  on 2 df,   p=1.36e-09
+## Score (logrank) test = 61.9  on 2 df,   p=3.7e-14,   Robust = 52.9  p=3.2e-12
+## 
+##   (Note: the likelihood ratio and score tests assume independence of
+##      observations within a cluster, the Wald and robust score tests do not).</code></pre>
+</div>
+</div>
+<div id="multiple-outputation" class="section level2">
+<h2>Multiple Outputation</h2>
+<p>Once the inverse-intensity weights have been calculated, an alternative use for them is to perform multiple outputation. The code below computes 20 outptted datasets, analyses each using an unweighted GEE, then combines the results.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(Phenobarb)
+Phenobarb<span class="op">$</span>id &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(Phenobarb<span class="op">$</span>Subject)
+Phenobarb<span class="op">$</span>event &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(<span class="kw">is.finite</span>(Phenobarb<span class="op">$</span>conc))
+Phenobarb.conc &lt;-<span class="st"> </span>Phenobarb[<span class="kw">is.finite</span>(Phenobarb<span class="op">$</span>conc),]
+i &lt;-<span class="st"> </span><span class="kw">iiw.weights</span>(<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(id),<span class="dt">id=</span><span class="st">&quot;id&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;id&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">FALSE</span>,<span class="dt">frailty=</span><span class="ot">TRUE</span>)
+reg &lt;-<span class="st"> </span><span class="cf">function</span>(data){
+    <span class="kw">return</span>(<span class="kw">data.matrix</span>(<span class="kw">summary</span>(<span class="kw">geeglm</span>(conc<span class="op">~</span>time <span class="op">+</span><span class="st"> </span><span class="kw">log</span>(time) <span class="op">+</span><span class="st"> </span>time<span class="op">:</span><span class="kw">log</span>(time), <span class="dt">id=</span>id,<span class="dt">data=</span>data))<span class="op">$</span>coefficients[,<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>]))
+}
+<span class="kw">set.seed</span>(<span class="dv">301031</span>)
+m.mogee &lt;-<span class="st"> </span><span class="kw">mo</span>(<span class="dv">20</span>,reg,Phenobarb.conc,i<span class="op">$</span>iiw.weight, <span class="dt">singleobs=</span><span class="ot">FALSE</span>,<span class="dt">id=</span><span class="st">&quot;id&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">keep.first=</span><span class="ot">FALSE</span>,<span class="dt">var=</span><span class="ot">TRUE</span>)</code></pre></div>
+<pre><code>## Warning in sqrt(var.est): NaNs produced</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">m.mogee</code></pre></div>
+<pre><code>## $est
+## [1] 21.663  1.343 -4.653 -0.222
+## 
+## $se
+## [1]   NaN 0.283   NaN 0.282
+## 
+## $RE.MO
+## [1] 0.918 1.462 0.930 1.010</code></pre>
+<p>The multiple outputation estimate of the regression coefficients is given by <code>$est</code>, and is the mean across outputations of the GEE estimates. The multiple outputation standard error (<code>$se</code>) is a function of both the within outputation standard errors and the between outputation variance. The relative efficiency of using 20 outputations in place of all possible outputations is given by <code>RE.MO</code>. In this example the number of subjects becomes small on outputation, resulting in the usual sandwich variance estimator for the GEE underestimating the standard error. For this reason, we use a small sample sandwich variance correction from the “geesmv” package. There are a number of options available, and in this example we have used the Mancl deRouen correction [ref].</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(geesmv)</code></pre></div>
+<pre><code>## Warning: package 'geesmv' was built under R version 3.4.4</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(Phenobarb)
+Phenobarb<span class="op">$</span>id &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(Phenobarb<span class="op">$</span>Subject)
+Phenobarb<span class="op">$</span>event &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(<span class="kw">is.finite</span>(Phenobarb<span class="op">$</span>conc))
+Phenobarb.conc &lt;-<span class="st"> </span>Phenobarb[<span class="kw">is.finite</span>(Phenobarb<span class="op">$</span>conc),]
+i &lt;-<span class="st"> </span><span class="kw">iiw.weights</span>(<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(id),<span class="dt">id=</span><span class="st">&quot;id&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;id&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">FALSE</span>,<span class="dt">frailty=</span><span class="ot">TRUE</span>)
+reg &lt;-<span class="st"> </span><span class="cf">function</span>(data){
+  est &lt;-<span class="st"> </span><span class="kw">geeglm</span>(conc<span class="op">~</span>time <span class="op">+</span><span class="st"> </span><span class="kw">log</span>(time) <span class="op">+</span><span class="st"> </span>time<span class="op">:</span><span class="kw">log</span>(time), <span class="dt">id=</span>id,<span class="dt">data=</span>data)<span class="op">$</span>coefficients
+  est &lt;-<span class="st"> </span><span class="kw">cbind</span>(est,<span class="kw">GEE.var.md</span>(conc<span class="op">~</span>time <span class="op">+</span><span class="st"> </span><span class="kw">log</span>(time) <span class="op">+</span><span class="st"> </span>time<span class="op">:</span><span class="kw">log</span>(time), <span class="dt">id=</span>id,<span class="dt">data=</span>data)<span class="op">$</span>cov.beta)
+  est &lt;-<span class="st"> </span><span class="kw">data.matrix</span>(est)
+  <span class="kw">return</span>(est)
+}
+<span class="kw">set.seed</span>(<span class="dv">301031</span>)
+m.mogee &lt;-<span class="st"> </span><span class="kw">mo</span>(<span class="dv">20</span>,reg,Phenobarb.conc,i<span class="op">$</span>iiw.weight, <span class="dt">singleobs=</span><span class="ot">FALSE</span>,<span class="dt">id=</span><span class="st">&quot;id&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">keep.first=</span><span class="ot">FALSE</span>,<span class="dt">var=</span><span class="ot">TRUE</span>)</code></pre></div>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<pre><code>## Beginning Cgee S-function, @(#) geeformula.q 4.13 98/01/27</code></pre>
+<pre><code>## running glm to get initial regression estimate</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">m.mogee</code></pre></div>
+<pre><code>## $est
+## [1] 21.663  1.343 -4.653 -0.222
+## 
+## $se
+## [1] 2.562 0.724 3.572 0.124
+## 
+## $RE.MO
+## [1] 1.05 1.05 1.04 1.05</code></pre>
+<p>Multiple outputation is helpful for analyses where weighting is difficult to implement. One such example is a semi-parametric joint model. Semi-parametric joint models are useful when there are latent variables that influence both the outcome and visit processes. We consider the Liang <span class="citation">(Liang, Lu, and Ying 2009)</span> semi-parametric joint model: <span class="math display">\[Y_i(t)=\beta_0(t) + X_i(t)\beta + W_i(t)\nu_{i1} + \epsilon_i(t) \]</span> <span class="math display">\[\lambda_i(t)=\nu_{i2}\lambda_0(t)\exp(U_i\gamma) \]</span> where <span class="math inline">\(W_i(t)\)</span> is a subset of the covariates <span class="math inline">\(X_i(t)\)</span>, <span class="math inline">\(U_i\)</span> is a vector of baseline covariates, <span class="math inline">\(\epsilon_i(t)\)</span> is a mean-zero random error, and <span class="math inline">\(\nu_{i1}\)</span>, <span class="math inline">\(\nu_{i2}\)</span> are (potentially correlated) random effects.</p>
+<p>The Liang model requires that the covariates in the model for the visits be time invariant. In practice, <span class="math display">\[\lambda_i(t)=\nu_{i2}\lambda_0(t)\exp(Z_i(t)\gamma), \]</span> for an observed vector of time-dependent auxiliary covariates <span class="math inline">\(Z_i(t)\)</span> may be more reasonable. Multiple outputation makes inference under this model possible by creating outputted datasets in which the visit process does not depend on the observed covariates <span class="math inline">\(Z_i(t)\)</span>. These datasets can be analysed using Liang’s method for the special case where there are no covariates in the visit process model.</p>
+<div id="example-1" class="section level3">
+<h3>Example</h3>
+<p>We consider the same example as before, now examining whether the concentration differs between those with an Apgar score &lt;5 at birth and those with a score &gt;=5, ad allowing a random intercept that is potentially correlated with a frailty variable in the visit process. That is, we take <span class="math display">\[conc_i(t)=\beta_0(t) + \beta_1I(Apgar_i&lt;5) + \beta_2I(Apgar\geq 5)t + \beta_3I(Apgar\geq 5)log(t) + \beta_4I(Apgar\geq 5)t\log(t) + \nu_{i1} + \epsilon_i(t),\]</span> with visit process model given by <span class="math display">\[\lambda_i(t)=\nu_{i2}\lambda_0(t)\exp(I(conc_i(T_{iN_i(t^-)})&gt;0)\gamma_1 + conc_i(T_{iN_i(t^-)})\gamma_2), \]</span> where <span class="math inline">\(\nu_{i1}=(\nu_{i11},\nu_{i12})^\prime\)</span> and <span class="math inline">\(\nu_{i2}\)</span> are potentially correlated. Note that when calculating the weights used for outputation, the <code>frailty=TRUE</code> option should be used because the lagged concentration is an internal covariate that is potentially correlated with the frailty variable, and the Cox model is non-collapsible.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(Phenobarb)
+Phenobarb<span class="op">$</span>id &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(Phenobarb<span class="op">$</span>Subject)
+Phenobarb<span class="op">$</span>event &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(<span class="kw">is.finite</span>(Phenobarb<span class="op">$</span>conc))
+Phenobarb.conc &lt;-<span class="st"> </span>Phenobarb[<span class="kw">is.finite</span>(Phenobarb<span class="op">$</span>conc),]
+i &lt;-<span class="st"> </span><span class="kw">iiw.weights</span>(<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(Subject),<span class="dt">id=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;Subject&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">TRUE</span>,<span class="dt">frailty=</span><span class="ot">TRUE</span>)
+Liangmo &lt;-<span class="st"> </span><span class="cf">function</span>(data,Yname,Xnames,Wnames,maxfu,baseline){
+ x &lt;-<span class="st"> </span><span class="kw">Liang</span>(data,Yname,Xnames,Wnames,<span class="dt">id=</span><span class="st">&quot;id&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,maxfu,baseline); <span class="kw">print</span>(x); <span class="kw">return</span>(x)
+}
+Phenobarb.conc<span class="op">$</span>Intercept &lt;-<span class="st"> </span><span class="dv">1</span>
+Phenobarb.conc<span class="op">$</span>time.logtime &lt;-<span class="st"> </span>Phenobarb.conc<span class="op">$</span>time<span class="op">*</span><span class="kw">log</span>(Phenobarb.conc<span class="op">$</span>time)
+Phenobarb.conc<span class="op">$</span>logtime &lt;-<span class="st"> </span><span class="kw">log</span>(Phenobarb.conc<span class="op">$</span>time)
+Phenobarb.conc<span class="op">$</span>ApgarInd.time &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(Phenobarb.conc<span class="op">$</span>ApgarInd)<span class="op">*</span>Phenobarb.conc<span class="op">$</span>time
+Phenobarb.conc<span class="op">$</span>ApgarInd.logtime &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(Phenobarb.conc<span class="op">$</span>ApgarInd)<span class="op">*</span><span class="kw">log</span>(Phenobarb.conc<span class="op">$</span>time)
+Phenobarb.conc<span class="op">$</span>ApgarInd.timelogtime &lt;-<span class="st"> </span><span class="kw">as.numeric</span>(Phenobarb.conc<span class="op">$</span>ApgarInd)<span class="op">*</span><span class="kw">log</span>(Phenobarb.conc<span class="op">$</span>time)<span class="op">*</span>Phenobarb.conc<span class="op">$</span>time
+<span class="kw">set.seed</span>(<span class="dv">301031</span>)
+m.moLiang &lt;-<span class="st"> </span><span class="kw">mo</span>(<span class="dv">20</span>,Liangmo,Phenobarb.conc,i<span class="op">$</span>iiw.weight, <span class="dt">singleobs=</span><span class="ot">FALSE</span>,<span class="dt">id=</span><span class="st">&quot;id&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">keep.first=</span><span class="ot">FALSE</span>,<span class="dt">var=</span><span class="ot">FALSE</span>,<span class="dt">Yname=</span><span class="st">&quot;conc&quot;</span>,<span class="dt">Xnames=</span><span class="kw">c</span>(<span class="st">&quot;ApgarInd&quot;</span>,<span class="st">&quot;ApgarInd.time&quot;</span>,<span class="st">&quot;ApgarInd.logtime&quot;</span>,<span class="st">&quot;ApgarInd.timelogtime&quot;</span>), <span class="dt">Wnames=</span><span class="kw">c</span>(<span class="st">&quot;Intercept&quot;</span>),<span class="dt">maxfu=</span><span class="dv">1000</span>,<span class="dt">baseline=</span><span class="dv">0</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">m.moLiang<span class="op">$</span>est</code></pre></div>
+<pre><code>## [1] -1.000  0.084  0.026 -0.017</code></pre>
+<p>For comparison, we also compute the estimate assuming that the measurement and outcome processes are independent given the last observed concentration, and plot the two curves.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">miiwgee &lt;-<span class="st"> </span><span class="kw">iiwgee</span>(conc <span class="op">~</span><span class="st"> </span>time<span class="op">*</span><span class="kw">log</span>(time)<span class="op">*</span>ApgarInd,<span class="kw">Surv</span>(time.lag,time,event)<span class="op">~</span><span class="kw">I</span>(conc.lag<span class="op">&gt;</span><span class="dv">0</span>) <span class="op">+</span><span class="st"> </span>conc.lag <span class="op">+</span><span class="st"> </span><span class="kw">cluster</span>(id),<span class="dt">formulanull=</span><span class="ot">NULL</span>,<span class="dt">id=</span><span class="st">&quot;id&quot;</span>,<span class="dt">time=</span><span class="st">&quot;time&quot;</span>,<span class="dt">event=</span><span class="st">&quot;event&quot;</span>,<span class="dt">data=</span>Phenobarb.conc,<span class="dt">invariant=</span><span class="st">&quot;id&quot;</span>,<span class="dt">lagvars=</span><span class="kw">c</span>(<span class="st">&quot;time&quot;</span>,<span class="st">&quot;conc&quot;</span>),<span class="dt">maxfu=</span><span class="ot">NULL</span>,<span class="dt">lagfirst=</span><span class="dv">0</span>,<span class="dt">first=</span><span class="ot">TRUE</span>)
+<span class="kw">summary</span>(miiwgee<span class="op">$</span>geefit)</code></pre></div>
+<pre><code>## 
+## Call:
+## geeglm(formula = formulagee, family = family, data = data, weights = useweight, 
+##     id = iddup, corstr = &quot;independence&quot;)
+## 
+##  Coefficients:
+##                             Estimate Std.err  Wald Pr(&gt;|W|)    
+## (Intercept)                   21.903   3.603 36.96  1.2e-09 ***
+## time                           0.363   0.674  0.29    0.590    
+## log(time)                     -1.673   3.563  0.22    0.639    
+## ApgarInd&gt;= 5                  -0.458   3.882  0.01    0.906    
+## time:log(time)                -0.045   0.114  0.15    0.694    
+## time:ApgarInd&gt;= 5              1.353   0.811  2.78    0.095 .  
+## log(time):ApgarInd&gt;= 5        -4.795   4.372  1.20    0.273    
+## time:log(time):ApgarInd&gt;= 5   -0.236   0.135  3.07    0.080 .  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Estimated Scale Parameters:
+##             Estimate Std.err
+## (Intercept)     64.1    31.2
+## 
+## Correlation: Structure = independenceNumber of clusters:   59   Maximum cluster size: 6</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">time &lt;-<span class="st"> </span>(<span class="dv">1</span><span class="op">:</span><span class="dv">200</span>)
+gp0 &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="kw">rep</span>(<span class="dv">1</span>,<span class="dv">200</span>),time,<span class="kw">log</span>(time),time<span class="op">*</span><span class="kw">log</span>(time))<span class="op">%*%</span>miiwgee<span class="op">$</span>geefit<span class="op">$</span>coefficients[<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>,<span class="dv">5</span>)]
+gp1 &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="kw">rep</span>(<span class="dv">1</span>,<span class="dv">200</span>),time,<span class="kw">log</span>(time),time<span class="op">*</span><span class="kw">log</span>(time))<span class="op">%*%</span>(miiwgee<span class="op">$</span>geefit<span class="op">$</span>coefficients[<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>,<span class="dv">5</span>)] <span class="op">+</span><span class="st"> </span>miiwgee<span class="op">$</span>geefit<span class="op">$</span>coefficients[<span class="kw">c</span>(<span class="dv">4</span>,<span class="dv">6</span><span class="op">:</span><span class="dv">8</span>)])
+diffLiang &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="kw">rep</span>(<span class="dv">1</span>,<span class="dv">200</span>),time,<span class="kw">log</span>(time),time<span class="op">*</span><span class="kw">log</span>(time))<span class="op">%*%</span>(m.moLiang<span class="op">$</span>est)
+<span class="kw">plot</span>(time,gp1<span class="op">-</span>gp0,<span class="dt">xlab=</span><span class="st">&quot;Time&quot;</span>,<span class="dt">ylab=</span><span class="st">&quot;Difference in means&quot;</span>,<span class="dt">type=</span><span class="st">&quot;l&quot;</span>,<span class="dt">ylim=</span><span class="kw">c</span>(<span class="kw">min</span>(gp1<span class="op">-</span>gp0,diffLiang),<span class="kw">max</span>(gp1<span class="op">-</span>gp0,diffLiang)))
+<span class="kw">lines</span>(time,diffLiang,<span class="dt">col=</span><span class="dv">2</span>)
+<span class="kw">legend</span>(<span class="dv">110</span>,<span class="op">-</span><span class="dv">10</span>,<span class="dt">legend=</span><span class="kw">c</span>(<span class="st">&quot;IIW estimate&quot;</span>,<span class="st">&quot;MO + Liang estimate&quot;</span>),<span class="dt">lty=</span><span class="dv">1</span>,<span class="dt">col=</span><span class="dv">1</span><span class="op">:</span><span class="dv">2</span>,<span class="dt">bty=</span><span class="st">&quot;n&quot;</span>)</code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAkAAAAJACAMAAABSRCkEAAAAVFBMVEUAAAAAADoAAGYAOjoAOpAAZrY6AAA6ADo6AGY6Ojo6kNtmAABmADpmtrZmtv+QOgCQ2/+2ZgC2/7a2///bkDrb////AAD/tmb/25D//7b//9v////QB4WMAAAACXBIWXMAAA7DAAAOwwHHb6hkAAASvUlEQVR4nO3djXriRrZGYdyxnQxkbDONG2Pu/z4HSYCxQahUX+2qXdJ6n2cyOekc6kdrQMhYLPaAYFF6AqgbAUFCQJAQECQEBAkBQUJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQUJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQUJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQUJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQUJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQUJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBEnigBaYiFIBpX04lEJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQWIa0MfzS8qHg0MmAe1WXz/t//VbfjjHIj/aMCE2z0DbxbL5ryk/A90sZoYZGb2E7VaP77cCmsj/WO/Pv/71jWB2DrR+eJvmM1BgHXNJyO4kerNYTjCgEV3M43nI8F3Yx/NfUwtodBHTT8jybfzn62JSAUXVMPWEuJAYKrqEaSdEQGGkCqacEAGFkAuYbkIEFCDFZKeaEAENSnXoK1ryCAQ0IOEzxySfhAjovrTznGBCBHRX8mlWsu5wBHSPwSzrWHg4ArrDZJITexkjoF5mR7qCtYcjoD6GM/S/+HAE1MN0ghN6GSOg26zn5339wQjolgzPEL43IBwB3ZBlchN5GSOga7nm5nkPghHQlXxTm8KTEAH9lHVmfrchFAH9kHlibvchFAF9l31eXjciFAF9U2BaTnciFAFdKjIrn1sRioAulZmVz70IREAXSk3K5WYEIqAv5ebkcTcCEdBZySk53I5ABHRSdkb+9iMQAZ0UnpG/DQlDQEfFJ1R8AnEIqONgPg6mEIGAWi6m42ISYxFQw8lsnExjFALaO5qMm4mEIyBXc3E0lUAE5GkqziYTgoA8TWXvbTbDCMjPTDre5jNg9gG5mciJuwndR0ClJ3DF34zumXtAXuZxyeOces08ICfT+MHnrG4jII+cTuuWeQfkYxbXvM7rhlkH5GISN/md2U8E5JPjqX0354A8zKGX68ldmHFADqZwj/PpnRCQV86ndzLfgMrPYID7CbZmG1DxCQyrYIoE5Nqk5jixgEqPH6aCWc40oAqOTMv/PAnIN/cTnWdA7g/LF+9TJSDnvE91lgF5PyjfOJ/sHANyfkh+8j3dGQbk+4Bc8z3f+QXk+3jc4nrGBFQBz1OeXUCeD0Yfz3MmoBo4nvTcAnJ8KO7xO20CqoLfac8sIL8HYoDbiRNQJbzO3CigzWKxeGn/5tfvBA+XitejEMDr1G0C2jy87Xerpz0BpeN07iYBfb4u278+vvsKyOkxCORz9iYB7Vbty9d+/fj+I6DF2YiHS8XnEQjmc/qGz0AH6ydPz0A+j0A4l/M3Ogc6ZrNbLfwE5HL/R/G4ArN3Yd2L2OcrASXkcAnzuQ7kcPPH87cIAqqKv0XMJiB/Wx/F3TIIqC7ulkFAlfG2jrkE5G3f4zlbCQHVxtlKZhKQs12X+FoLAdXH1WLmEZCrLZe5Wg0BVcjTcmYRkKcNT8HTegioRo4WNIeAHG13Io5WNIOAHO12Mn7WREB1crOo6QfkZquTcrMqAqqUl2VNPiAvG52al3URUK2cLGzqATnZZgNOVkZA1fKxtIkH5GOTjbhYHAHVy8Xiph2Qiy2242F5BFQzB+sjoJo5WN+kA3Kwv8bKr5CA6lZ8iVMOqPjm5lB6kQRUudKLJKDaFV7lhAOaRz+llxkR0G61bO4D/fieZVzXQ7hQdp0RAa0f3z+en/brpyzjOh7BidoCau7hu10c/tNz98PE4zoewYuiK40LaH2Ip+8GvonHdTyCF5UFdHjt2q0e37tvMrAf1+0AjpRca9RJ9OLh7fNV6ud63NSbQEDOxrZ+G1/fZQJHCq6WgKagroA+X7uvS0l7Ek1AinLLjTmJlsrpGzftFsysn6oCai5EG4xLQJJiC467DmQwbtIdmF0/NQWkvoHvGZeANKWWHHEOtF0keAoioMTqCWi3Wnh/FzbDfootepLXgWYZUKFVTzGgefZTT0Cn1zC3L2EzDajMuuM+ULZ52n88S6fShgHNtZ9aAmouJG4f3/cb6TOtBGSgxMrjLiR+/PO7/U/CcZMtfr79VBLQ5+tyv/v3jYAcKrD2iHOg5rOs66XXl7A591Ni9TFv49dPzTsx7WfyBGSijoBMxk30+PPup8D6CWhicm9ATECH16/H97X2qSACMlJBQNuHt03zaz1SQUYBzb6f7FsQ9za+eQeW+hcLkyycgPwH1FxIbAJK/avNBJRI3j2IfwZap70OlGTd9LP3H9DxHGijfS6RgMy4D6j7PMfDW+JxE6ybflpZt8HNdSACSoaA0j3oPOXcBzefSEywavo58h3Q52vA26/B358nIEsZdyLuOtCQzeJ4mXq76LleTUCWXAfUXAcacPGv9H1qyCAg+vmSby8izoE+/h56B3/xJPXjevXiLH4mfQjoi++AnodOol0/A/05UcdzLVtBMS9hwzdXOF+mzngOdOP//88t9/90Kl05Dijo9i6nt/q9b9gMAxJbmEhNuQoyOYmOGlcPyOCg11uS34ACTqKjxlVWbH+Q6wspU0ExL2Emt3eJXvDxsGbar3qektwGZDVuxACXRzL3m3j/GeXZkWoD+nH4Cl0E8pwRAfW6cdCKXkV0WlGWPakuoNvHysFVaH9PRgR0pfcIOQio4yqjHLtSU0B3DoybgDpOKnIakM13ZQzM5P4RcdZPp3xETgOy+a6MuzMZOhIuA2oUfkXLsC8xFxJz/yhj+Ai4DahTrCKnAZl8V0bvTAK23nk/nSIR2e+Mzcc5Ysa9PZOgTa8ioEb+iMy3JuIcyOa7Mno+zxP5YI7ljchhQNl+mBq8z1X108p4UmS9OX6vA4VvcH0BtTJFZLw7bgMasbeVBtTIENE8AxqzrRX307KOyHZ/Rga0Wy1znAON2tDaA2pYJuQqIMNxL/7J7PrZm55Xm+6Qw4BG7uNEAmrZRDSzgEbu4JT6aaWPaF4Bjd28yQXUSJyQ5R55C4h+OklPieYT0Pg9m2pArWQRGe5STEAmX3XQ/JOI3Zp0QI0kCfkKyOarDg7/hH5uSvE8ZLdPMR/nMPqqg5hdmkNADTUhTwFZfdXBn5hFziUg+azabKPin4FSf9UBAQ2Lj8hRQEZfdfAnZo0z66cVl5CngIy+6oCAQkU9D1ltlZ/rQAQ0xuiECCjsQeZj7Fm10WbFBNScPvfePTN+XAIab0RCfgLq3n7tVtJv9xBQIsHPQ24COv1iYerrQONXSD9HYQnZbFfcdaBG6ivRBCQISchLQMe7iH88J/5ZGAFJAl7KTPYr5iS6/a6D8teB6OengYbcBGQ0LgElcPeJyGLHCGh6ehNyEpDRHcrGLo9++mW8lWTMdSCbO5QRUErZbmYbcx3I5g5lBJTadUJOArK5Q9nI1dFPgKunofS7FnMh0eYOZQRk4vtrmYeArO5QRkBmLhJKvm0xL2E2d+cYtzb6GcXuS41qvQ5EQCOdXspSbxwBzUiTkIeAbH4zddTS6CfO4WnI/plg6F80+s1UAsoj8e1j4j4PZPGbqQSUySLp7WPiLiRa/GYqAeXSbF6yhOKfgVL/ZuqYKOhH0e1e7jvH/DwHSv2bqQSUz3H7kpwNRb4LK/yJRAKSXGyf3FCV14HoR/N9/7SE4s6BdARU0o8NzHLfGPuPcxR7Npyfqw3McN+Yi5Noo08kBs+FfmS3ttD4vjH2P40noHxub2FMQo5Oogkon74tNLzPsp+A6CeB3k0cezLk6KfxBJTRvU0cdUZt9NP4zeEcqX2z1vcjVwIqbGAX039h7aifxm8e3o43ECIgpwZ3MfVth8b8NL671vj5eiez+IDoJ4mAbQxKyOSn8adrjYd/hYC8CtnHgIRMfhp//mnH+il5QPSTSNhGprvp0Kifxp+yOfybBORV4E4O3A3W6DrQ6fnp8/V7QIuzyCHoJ5kxW9mf0MiADmc3u3+1TwL1j0tAWY3bSvmOMaeAluEB3fvgR2RA9JPQyM28ndDYl7DN14vQ4A9TCci30Zsp3XLo6zoQz0BTMX43hVsORZwDpQ+IfpJKsZ11nQMRUFIFAhp1DjR2XALKLcF+Wp4DjR53cDIElFaRgNKICoh+UtN3lIBmLXtAzUm02YfqCSi7eT0D0U968p4S0LwVCKh7CZPu7dI3LgHlp27q6IDWxw/Lp//S3aHJ0I+F3AFtTx8k+3hOfX8gAipC3NaRAV18z8E69bc2E1AReQO6+G2w5DfZHJgM/RjRNnb8T+NP/yD5TTYJqAwCgkbaWVcB3ZsN/ZghIGiUvR0dkOHngQiokIwBJTM2IPoxREDQCLtLQJhDQPRjajIB9Y5CQLbi95eAsJ9+QPRjLXqHCQgNAoJk2gHRj73YPSYgtCYSUNSH7ZFC5CbXEBD95EBAkBAQNHHbXEFA9JMHAUFCQNBEbbS3gK7/gH5yISBIphkQ/eQTs9cEhLMpBkQ/OUXsNgHhyxQC+v4n9JMVAUEzfr99B0Q/mU0sIPrJbvSW+wvo4o8IKLtJBUQ/+REQNGM33WFApz+jnxIICJIpBNT+4YJ+yhi57y4DOtRDPqVMIiAUNO7QEBB+ICBoRh0bAsJPBATNmINDQLhCQNCMODoEhGsEBAkBQRN+eAgINzgJ6M43OxOQa4UDCvhWMQLyLX0Xo474dtF+uTPPQNUqHNDhOejxnYBqFnqAzM6B1g9vBFSx4gHtN4slAdWrfECH55+/rgL6Orke/XDIK/AIWb6N/3xd8AxULRcBLVM+HLIiIGjCDhEBoQcBQUJA0AQdI34ajz4EBAkBQRNykAgIvQgIEgKCJuAoERD6ERA0w4eJgHAHAUFCQNAMHicCwj0EBAkBQTN0oAgIdxEQJAQEzcCRIiDcR0CQEBA09w8VAWEAAUFCQNDcPVYEhCEEBM29g0VAGERA0Nw5WgSEYQQETf/hIiAEICBICAia3uNFQAhBQJAQEDR9B4yAEISAICEgaHqOGAEhDAFBQkDQ3D5kBIRABAQJAUFz85gREEIRECQEBM2tg0ZACEZAkBAQNDeOGgEhHAFBQkDQXB82AsIIBAQJAUFzddwICGMQENIiIEgICBICgoSAICEgSAgIEqOA1r9+7z+eF4uHtyQPB7dsAmr7+fsQz271kuDh4JdJQLvV8hDRU/O3m8d3+eHgmFFAL/vP12Xzt9vDc5H6cHDM6CXs8Oyz4RloDmwC2q1+/W6fgrZ9Z9EENBFWb+O3i9bTz0c5G/dw8KrYdSBMhGFAx/Noo0ePlPGpb4qLih+JgBwPVcNIBOR4qBpGIiDHQ9UwEgE5HqqGkWznWMMOOB6qhpEIyPFQNYxEQI6HqmEkAnI8VA0j8bMHSAgIEgKChIAgISBICAgSAoKEgCAhIEgICBICgoSAICEgSAwD2t65i0cyu1XzOyhP9sN9/NP+Mvd5FLvhupHMF/b5enj87vfUlTXZBdT89mrvb7Am094sJMNwzS/lXo5iN9xxJOuFfb4eHnPTFKqtySyg7pPT65+/w5ra6S4PxsMd/rfZDHQexW6440jmC/t4bu7Qszn+rnr8mswCOk/QaoDO5inHcNvFsj2g51HMhjuNlGthD2/imuwCap+C+24Dk8z6P90ruflwXUCnUSyH6x41z8LWF0uJG8ksoO7F1PokaLdq7jOzXtoP127seRTL4dqR8izs8HynrqnygI5j/fo9tYDOf2s60ukc2mNAmV7CurGeXyb3EtayXdi2fRfv9SUs00l0N9bfb+bDZTqJ3n8PyHJhm+4qkNeT6Dxv47tFby/ejFrZZnob/y1Vy4VtFt2ddr2+jc90IbFd73ppP9w214XE07sw44V9PJ/ucOD0QmKTeIYfZezXh3e7LxmGO76wnEexG+44kvHCNt2NyJpHltbED1MhISBICAgSAoKEgCAhIEgICBICgoSAICEgSAgIEgKChIAgISBICAgSAoKEgCAhIEgICBICgoSAICEgSAgIEgKChIAgISBICAgSAhrQ3W734Nf/Vi+lJ+MQAQU433IXVwgoAAH1I6AAXUC7w0vYx/N/Dy9py4/n7tYrm9PN3ueLgAJcBtTe3/3X7/ZWcJvD//F1o6Z5IqAAlwEt96e/vOxWTTt57iPqFgEFuAzoZX/+S3c7uO5uhrNFQAH6Ajq+wScg3Hf3GWjmCChAT0A7riwSUJCegNp3Yfv1vJ+HCChAX0DtdaB5vwkjIGgICBICgoSAICEgSAgIEgKChIAgISBICAgSAoKEgCAhIEgICBICgoSAICEgSAgIEgKChIAgISBICAgSAoKEgCD5P4qHH8etGfmyAAAAAElFTkSuQmCC" style="display: block; margin: auto;" /></p>
+<p>. Note that the Liang method does not provide theoretical standard errors, so these are usually estimated through bootstrapping.</p>
+</div>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1>References</h1>
+<div id="refs" class="references">
+<div id="ref-BuzkovaCJS2007">
+<p>Buzkova, P., and T. Lumley. 2007. “Longitudinal Data Analysis for Generalized Linear Models with Follow-up Dependent on Outcome-Related Variables.” <em>The Canadian Journal of Statistics</em> 35: 485–500.</p>
+</div>
+<div id="ref-Follmann2003">
+<p>Follmann, D., M. Proschan, and E. Leifer. 2003. “Multiple Outputation: Inference for Complex Clustered Data by Averaging Analyses from Independent Data.” <em>Biometrics</em> 59: 420–29.</p>
+</div>
+<div id="ref-Hoffman2001">
+<p>Hoffman, E.B., P.K. Sen, and C. Weinberg. 2001. “Within-Cluster Resampling.” <em>Biometrika</em> 88: 1121–34.</p>
+</div>
+<div id="ref-Liang2009">
+<p>Liang, Y., W. Lu, and Z. Ying. 2009. “Joint Modeling and Analysis of Longitudinal Data with Informative Observation Times.” <em>Biometrics</em> 65: 377–84.</p>
+</div>
+<div id="ref-LSR">
+<p>Lin, H., D.O. Scharfstein, and R.A. Rosenheck. 2004. “Analysis of Longitudinal Data with Irregular, Outcome-Dependent Follow-up.” <em>Journal of the Royal Statistical Society, Series B</em> 66: 791–813.</p>
+</div>
+<div id="ref-Pullenayegum2016">
+<p>Pullenayegum, E.M. 2016. “Multiple Outputation for the Analysis of Longitudinal Data Subject to Irregular Observation.” <em>Statistics in Medicine</em> in press.</p>
+</div>
+<div id="ref-Pullenayegum2015">
+<p>Pullenayegum, E.M., and L.S.H. Lim. In Press. “Longitudinal Data Subject to Irregular Observation: A Review of Methods with a Focus on Visit Processes, Assumptions, and Study Design.” <em>Statistical Methods in Medical Research</em>.</p>
+</div>
+</div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
