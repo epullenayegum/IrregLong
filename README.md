@@ -25,7 +25,7 @@ newborns and had data collected as part of usual care. Typically, weight
 and length are measured at every clinical encounter, which would include
 birth and 2-month vaccinations. However, newborns who are slow to regain
 their birthweight will be seen more frequently. Consequently,
-observations coresponding to newborns who are growing slowly are
+observations corresponding to newborns who are growing slowly are
 over-represented in your data, which will lead to under-estimation of
 the rate of growth unless you account for the informative nature of the
 visit process.
@@ -39,7 +39,7 @@ and to analyse your data accounting for irregularity.
 You can install the development version of IrregLong through Github:
 
 ``` r
-devtools::install_github("epullenayegum/Irreglong/Irreglong")
+devtools::install_github("epullenayegum/Irreglong")
 ```
 
 ## Examining the extent of irregularity
@@ -82,7 +82,7 @@ assessment times given previously observed covariates; intensity rate
 ratios that differ from 1 provide evidence against ACAR. The function
 iiw.weights can help you model the assessment intensity, assuming a
 proportional rates model. The example below uses data from the Phenobarb
-dataset in the MEMSS packageand shows that serum concentration of
+dataset in the MEMSS package and shows that serum concentration of
 phenobarbital at the last assessment is associated with subsequent
 assessment intensity, suggesting that the ACAR assumption is not
 tenable.
