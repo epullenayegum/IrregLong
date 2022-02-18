@@ -4,7 +4,7 @@ cran-comments.md
 ^revdep
 NEWS.Rmd
 README.Rmd
-
+lastMiKTeXException
 ^\.github$
 ^_pkgdown\.yml$
 ^docs$
