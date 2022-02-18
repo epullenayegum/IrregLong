@@ -128,23 +128,23 @@
 <span class="r-in"><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data.output2</span><span class="op">)</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Grouped Data: conc ~ time | Subject</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Subject  Wt Apgar ApgarInd  time dose conc event id weight</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2        1 1.4     7     &gt;= 5   2.0   NA 17.3     1 32      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14       2 1.5     9     &gt;= 5   2.0   NA  9.7     1 38      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20       2 1.5     9     &gt;= 5  63.5   NA 24.6     1 38      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29       3 1.5     6     &gt;= 5   1.5   NA 18.0     1 11      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 36       3 1.5     6     &gt;= 5  83.5   NA 23.8     1 11      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 42       3 1.5     6     &gt;= 5 134.3   NA 24.3     1 11      1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2        1 1.4     7     &gt;= 5   2.0   NA 17.3     1 32  1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14       2 1.5     9     &gt;= 5   2.0   NA  9.7     1 38  1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20       2 1.5     9     &gt;= 5  63.5   NA 24.6     1 38  1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 27       2 1.5     9     &gt;= 5 135.5   NA 33.0     1 38  0.478</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 29       3 1.5     6     &gt;= 5   1.5   NA 18.0     1 11  1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 36       3 1.5     6     &gt;= 5  83.5   NA 23.8     1 11  1.000</span>
 <span class="r-in"><span class="va">data.output3</span> <span class="op">&lt;-</span>   <span class="fu">outputation</span><span class="op">(</span><span class="va">data</span>,<span class="va">data</span><span class="op">$</span><span class="va">weight</span>,singleobs<span class="op">=</span><span class="cn">FALSE</span>,</span>
 <span class="r-in">id<span class="op">=</span><span class="st">"id"</span>,time<span class="op">=</span><span class="st">"time"</span>,keep.first<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span>
 <span class="r-in"><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data.output3</span><span class="op">)</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Grouped Data: conc ~ time | Subject</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Subject  Wt Apgar ApgarInd  time dose conc event id weight</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2        1 1.4     7     &gt;= 5   2.0   NA 17.3     1 32      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14       2 1.5     9     &gt;= 5   2.0   NA  9.7     1 38      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20       2 1.5     9     &gt;= 5  63.5   NA 24.6     1 38      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29       3 1.5     6     &gt;= 5   1.5   NA 18.0     1 11      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 36       3 1.5     6     &gt;= 5  83.5   NA 23.8     1 11      1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 42       3 1.5     6     &gt;= 5 134.3   NA 24.3     1 11      1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2        1 1.4     7     &gt;= 5   2.0   NA 17.3     1 32  1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12       1 1.4     7     &gt;= 5 112.5   NA 31.0     1 32  0.478</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14       2 1.5     9     &gt;= 5   2.0   NA  9.7     1 38  1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20       2 1.5     9     &gt;= 5  63.5   NA 24.6     1 38  1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 29       3 1.5     6     &gt;= 5   1.5   NA 18.0     1 11  1.000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 36       3 1.5     6     &gt;= 5  83.5   NA 23.8     1 11  1.000</span>
 <span class="r-in"><span class="co"># Note that the outputted dataset varies with each command run; outputation is done at random</span></span>
 </code></pre></div>
     </div>
