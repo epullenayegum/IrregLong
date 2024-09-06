@@ -29,8 +29,8 @@ Multiple outputation is a procedure whereby excess observations are repeatedly r
 library(nlme)
 data(Phenobarb)
 library(survival)
-library(geepack)
 library(data.table)
+library(geeM)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 data <- Phenobarb
 data <- data[data$event==1,]
