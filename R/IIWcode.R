@@ -1,5 +1,5 @@
 
-#' @import stats survival geepack data.table graphics
+#' @import stats survival geeM data.table graphics
 #' @importFrom stats runif formula model.matrix predict terms
 #' @importFrom graphics plot points segments
 #' @importFrom data.table data.table setkey setkeyv rbindlist shift := .SD first
@@ -174,7 +174,7 @@ phfn <- function(datacox,regcols,data){
 #' @examples
 #' library(nlme)
 #' library(survival)
-#' library(geepack)
+#' library(geeM)
 #' library(data.table)
 #' data(Phenobarb)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
@@ -207,7 +207,7 @@ iiw <- function(phfit,data,id,time,first){
 #' @details
 #' Let the outcome of interest be \eqn{Y} and suppose that subject i has \eqn{j^{th}} observation at \eqn{T_{ij}}. Let \eqn{N_i(t)} be a counting process for the number of observations for subject i up to and including time t. Suppose that \eqn{N_i} has intensity \eqn{\lambda} given by \deqn{\lambda_i(t)=\lambda0(t)exp(Z_i(t)\gamma).} Then the inverse-intensity weights are \deqn{exp(-Z_i(t)\gamma).} If \eqn{Y_i} is the vector of observations for subject \eqn{i}, to be regressed onto \eqn{X_i} (i.e. \eqn{E(Y_i|X_i)=\mu(X_i;\beta)} with \eqn{g(\mu(X_i;beta)=X_i\beta}, then the inverse-intensity weighted GEE equations are \deqn{\sum_i \frac{\partial\mu_i}{\partial\beta}V_i^{-1}\Delta_i(Y_i X_i\beta)=0}, where \eqn{\Delta_i} is a diagonal matrix with \eqn{j^{th}} entry equal to \eqn{\exp(-Z_i(T_{ij})\gamma)} and $V_i$ is the working variance matrix.
 #' Warning: Due to the way some gee functions incorporate weights, if using inverse-intensity weighting you should use working independence.
-#' @param formulagee the formula for the GEE model to be fit. The syntax used is the same as in geeglm
+#' @param formulagee the formula for the GEE model to be fit. The syntax used is the same as in glm
 #' @param formulaph the formula for the proportional hazards model for the visit intensity that will be used to derive inverse-intensity weights. The formula should usually use the counting process format (i.e. Surv(start,stop,event))
 #' @family iiw
 #' @param formulanull if stabilised weights are to be used, the formula for the null model used to stabilise the weights
@@ -215,14 +215,15 @@ iiw <- function(phfit,data,id,time,first){
 #' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param event character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones
-#' @param family family to be used in the GEE fit. See geeglm for documentation
+#' @param family family to be used in the GEE fit. See geeM for documentation
 #' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
 #' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
 #' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
+#' @param stabilize.loess logical variable. If TRUE, additional stabilization is done by fitting a loess of the (stabilized) weights versus time, then dividing the observed weights by the predicted values
 #' @return a list, with the following elements:
-#' \item{geefit}{the fitted GEE, see documentation for geeglm for details}
+#' \item{geefit}{the fitted GEE, see documentation for geeM for details}
 #' \item{phfit}{the fitted proportional hazards model, see documentation for coxph for details}
 #' @references
 #' \itemize{
@@ -232,7 +233,7 @@ iiw <- function(phfit,data,id,time,first){
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
-#' library(geepack)
+#' library(geeM)
 #' library(data.table)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 #' data <- Phenobarb
@@ -248,17 +249,19 @@ iiw <- function(phfit,data,id,time,first){
 #' summary(miiwgee$phfit)
 #'
 #' # compare to results without weighting
-#' m <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data); print(summary(m))
+#' data$time3 <- (data$time^3)/mean(data$time^3)
+#' data$logtime <- log(data$time)
+#' m <- geem(conc ~ time3 + logtime , id=Subject, data=data); print(summary(m))
 #' time <- (1:200)
-#' unweighted <- cbind(rep(1,200),time^3,log(time))%*%m$coefficients
-#' weighted <- cbind(rep(1,200),time^3,log(time))%*%miiwgee$geefit$coefficients
+#' unweighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))%*%m$beta
+#' weighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))%*%miiwgee$geefit$beta
 #' plot(data$time,data$conc,xlim=c(0,200),pch=16)
 #' lines(time,unweighted,type="l")
 #' lines(time,weighted,col=2)
 #' legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)
 #' @export
 
-iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,family=gaussian,lagvars,invariant=NULL,maxfu,lagfirst,first){
+iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,family=gaussian,lagvars,invariant=NULL,maxfu,lagfirst,first,stabilize.loess=FALSE){
 # id is the id variable
 # lagvars are the variables to be lagged
 # invariant are the variables that are invariant. Only need to be entered if they are in formulaph
@@ -267,7 +270,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 
 	# sort the data on id then time
 	data <- data[order(data[,names(data)%in%id],data[,names(data)%in%time]),]
-	weights <- iiw.weights(formulaph, formulanull,data=data,id=id,time=time,event=event,lagvars=lagvars,invariant=invariant,maxfu=maxfu,first=first,lagfirst=lagfirst)
+	weights <- iiw.weights(formulaph, formulanull,data=data,id=id,time=time,event=event,lagvars=lagvars,invariant=invariant,maxfu=maxfu,first=first,lagfirst=lagfirst,stabilize.loess=stabilize.loess)
 	data$useweight <- weights$iiw.weight
 	m <- weights$m
 
@@ -276,7 +279,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 	useweight <- data$useweight
 	iddup <- data$iddup
 
-	mgee <- geeglm(formulagee,id=iddup,data=data,corstr="independence",weights=useweight,family=family)
+	mgee <- geem(formulagee,id=iddup,data=data,corstr="independence",weights=useweight,family=family)
 	return(list(geefit=mgee,phfit=m))
 }
 
@@ -295,8 +298,9 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
 #' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
+#' @param stabilize.loess logical variable. If TRUE, additional stabilization is done by fitting a loess of the (stabilized) weights versus time, then dividing the observed weights by the predicted values
 #' @return a vector of inverse-intensity weights, ordered on id then time
-#' @description Since the vector of weights is ordered on id and time, if you intend to merge these weights onto your original dataset it is highly recommended that you sort the data before running iiw.weights
+#' @description Since the vector of weights is ordered on id and time, if you intend to merge these weights onto your original dataset it is highly recommended that you sort the data before running iiw.weights. The loess.stabilize  option is designed to avoid time trends in the weights. This option fits a loess smooth of the weights vs. time, then divides by the predicted value.
 #' @references
 #' \itemize{
 #' \item Lin H, Scharfstein DO, Rosenheck RA. Analysis of Longitudinal data with Irregular, Informative Follow-up. Journal of the Royal Statistical Society, Series B (2004), 66:791-813
@@ -305,7 +309,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
-#' library(geepack)
+#' library(geeM)
 #' library(data.table)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 #' data <- Phenobarb
@@ -319,7 +323,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' data$weight <- i$iiw.weight
 #' summary(i$m)
 #' # can use to fit a weighted GEE
-#' mw <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=weight)
+#' mw <- geem(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=weight)
 #' summary(mw)
 #' # agrees with results through the single command iiwgee
 #' miiwgee <- iiwgee(conc ~ I(time^3) + log(time),
@@ -331,7 +335,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' @family iiw
 #' @export
 
-iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invariant=NULL,maxfu,lagfirst=lagfirst,first){
+iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,invariant=NULL,maxfu,lagfirst=lagfirst,first,stabilize.loess=FALSE){
   # frailty models will fail if no censoring observations so create artificially censored observations
   # no longer needed now that frailtyPenal has been replaced with coxme
 #	if(is.null(maxfu) & frailty){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
@@ -375,6 +379,12 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 	} else{data$useweight <- data$iiw.weight}
 
 	if(stabilize==FALSE) m0 <- NULL
+
+	if(stabilize.loess){
+	  l <- loess(data$useweight~data[,names(data)%in%time])
+	  stab <- predict(l)
+	  data$useweight <- data$useweight/stab
+	}
 	tmin <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],min)
 	firstvisit <- as.numeric(data[,names(data)%in%time]==tmin[data[,names(data)%in%id]])
 	if(first){data$useweight[firstvisit==1] <- 1}
@@ -405,8 +415,8 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
-#' library(geepack)
 #' library(data.table)
+#' library(geeM)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 #' data <- Phenobarb
 #' data <- data[data$event==1,]
@@ -509,7 +519,7 @@ outputanalfn <- function(it,fn,data,weights,singleobs,id,time,keep.first,...){
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
-#' library(geepack)
+#' library(geeM)
 #' library(data.table)
 #'
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
@@ -525,7 +535,8 @@ outputanalfn <- function(it,fn,data,weights,singleobs,id,time,keep.first,...){
 #' wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
 #' data$wt <- wt
 #' reg <- function(data){
-#' est <- summary(geeglm(conc~I(time^3) + log(time), id=id,data=data))$coefficients[,1:2]
+#' m <- geem(conc~I(time^3) + log(time), id=id,data=data)
+#' est <- cbind(summary(m)$beta,summary(m)$se.robust)
 #' est <- data.matrix(est)
 #' return(est)
 #' }
@@ -955,7 +966,7 @@ abacus.plot <- function(n,time,id,data,tmin,tmax,xlab.abacus="Time",ylab.abacus=
 #' Measures of extent of visit irregularity
 #' Provides visual and numeric measures of the extent of irregularity in observation times in a longitudinal dataset
 #'
-#' @details This function provides plots and a numerical summary of the extent of irregularity in visit times. For any given set of cutpoints, it computes the proportion of individuals with 0, 1 and >1 observation(s) in each bin, then takes the mean over bins. The sizes of the bins are varied and these proportions are plotted against bin size. In addition, then mean proportion of individuals with >1 visit per bin is plotted vs. the mean proportion of individuals with 0 visits per bin, and the area under the curve is calculated (AUC). An AUC of 0 represents perfect repeated measures while a Poisson Process has an AUC of 0. If cutpoints are not supplied, they are computed as follows: (a) for studies with protocolized visit times, the left- and right-hand cutpoints are positioned at the protocolized time minus (or plus, for right-hand cutpoints) (1,...,ncutpts)/ncutpts times the gap to the previous (or next, respectively) protocolized visit time; (b) for studies with no protocolized visit times, cutpoints are calculated by finding, for each j in {1,...,ncutpts} the largest times for which the cumulative hazard is less than j divided by the cumulative hazard evaluated at the maximum time of interest. This corresponds to choosing cutpoints such that the expected number of visits per bin is roughly equal within each set.
+#' @details This function provides plots and a numerical summary of the extent of irregularity in visit times. For any given set of cutpoints, it computes the proportion of individuals with 0, 1 and >1 observation(s) in each bin, then takes the mean over bins. The sizes of the bins are varied and these proportions are plotted against bin size. In addition, then mean proportion of individuals with >1 visit per bin is plotted vs. the mean proportion of individuals with 0 visits per bin, and the area under the curve is calculated (AUC). An AUC of 0 represents perfect repeated measures while a Poisson Process has an AUC of 0. If cutpoints are not supplied, they are computed as follows: (a) for studies with protocolized visit times, the left- and right-hand cutpoints are positioned at the protocolized time minus (or plus, for right-hand cutpoints) (1,...,ncutpts) times the gap to the previous (or next, respectively) protocolized visit time, divided by ncutpts; (b) for studies with no protocolized visit times, cutpoints are calculated by finding, for each j in (1,...,ncutpts) the largest times for which the cumulative hazard is less than j divided by the cumulative hazard evaluated at the maximum time of interest. This corresponds to choosing cutpoints such that the expected number of visits per bin is roughly equal within each set.
 #' @param data The data containing information on subject identifiers and visit times
 #' @param time A character indicating which column of the data contains the times at which each of the observations in data was made
 #' @param id A character indicating which column of the data contains subject identifiers. ids are assumed to be consecutive integers, with the first subject having id 1
@@ -1100,6 +1111,237 @@ basehaz.cutpoints <- function(nbin,formula,data,id,time,event,lagvars,maxfu,tau)
   basehaz.pts <- max(Hazard)*(0:nbin)/nbin
   time.cuts <- sapply(basehaz.pts,FUN=findx,x=s$time,y=Hazard)
   return(time.cuts)
+}
+
+
+#' Create a single bootstrap sample for clustered data
+#' For clustered data, create a bootstrapped sample by sampling, with replacement, the same number of clusters as in the original dataset.
+#' @details This function is designed to assist in computing bootstrap standard errors when working with longitudinal data. Given longitudinal data with multiple rows per subject, it will sample subjects, with replacement, n times, where n is the number of subjects in the original dataset. In the bootstrapped dataset, each resample has its own id.
+#' @param data The dataset to be resampled
+#' @param idname A character indicating which column of the data contains subject identifiers.
+
+create.bootstrapped.dataset <- function(data,idname){
+
+  id <- data[,names(data)%in%idname]
+  ids <- unique(id)
+  nsubj <- length(ids)
+  idboot <- sample(ids,size=nsubj,replace=TRUE)
+  subsample <- function(i,idboot,data,idname){
+    id <- data[,names(data)%in%idname]
+    datai <- data[id==idboot[i],]
+    datai$bootid <- i
+    return(datai)
+  }
+  data.boot <- rbindlist(lapply(1:nsubj,subsample,idboot,data,idname))
+  return(data.boot)
+}
+
+
+#' Fit a semi-parametric joint model, incorporating intercept estimation
+#'
+#' Fits a semi-parametric joint model with an estimated intercept, as described by Pullenayegum et al. (2023).
+#'
+#' @details
+#' This function fits a semi-parametric joint model as described in Pullenayegum et al. (2023); this is an extension of the Liang (2009) model that includes estimation of the intercept term. It uses a frailty model to estimate the parameters in the visit intensity model
+#' @param data data frame containing the variables in the model
+#' @param Yname character string indicating the column containing the outcome variable
+#' @param Xnames vector of character strings indicating the names of the columns of the fixed effects in the outcome regression model
+#' @param Wnames vector of character strings indicating the names of the columns of the random effects in the outcome regression model
+#' @param Znames vector of character strings indicating the names of the columns of the covariates in the visit intensity model
+#' @param formulaobs formula for the observation intensity model
+#' @param id character string indicating which column of the data identifies subjects
+#' @param time character string indicating which column of the data contains the time at which the visit occurred
+#' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
+#' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the visit intensity model
+#' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
+#' @param maxfu The maximum follow-up time per subject. If all subjects have the same follow-up time, this can be supplied as a single number. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
+#' @param baseline An indicator for whether baseline (time=0) measurements are included by design. Equal to 1 if yes, 0 if no.
+#' @param Xfn A function that takes as its first argument the subject identifier and has time as its second argument, and returns the value of X for the specified subject at the specified time.
+#' @param Wfn A function that takes as its first argument the subject identifier and has time as its second argument, and returns the value of W for the specified subject at the specified time
+#' @param ... other arguments to Xfn and Yfn
+#' @details The Liang method requires a value of X and W for every time over the observation period. If Xfn is left as NULL, then the Liang function will use, for each subject and for each time t, the values of X and W at the observation time closest to t.
+#' @return the regression coefficients corresponding to the fixed effects in the outcome regression model.  Closed form expressions for standard errors of the regression coefficients are not available, and Liang et al (2009) recommend obtaining these through bootstrapping.
+#' @references
+#' \itemize{
+#' \item Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.
+#' \item Pullenayegum EM, Birken C, Maguire J. Causal inference with longitudinal data subject to irregular assessment times. Statistics in Medicine. 2023; 42(14): 2361–2393. doi: 10.1002/sim.9727
+#' }
+#'
+#' @export
+#' @examples
+#' # replicate simulation in Liang et al., but this time estimating the intercept and time terms
+#' \dontrun{
+#' library(data.table)
+#' library(survival)
+#' datasimi <- function(id){
+#' X1 <- runif(1,0,1)
+#' X2 <- rbinom(1,1,0.5)
+#' Z <- rgamma(1,1,1)
+#' Z1 <- rnorm(1,Z-1,1)
+#' gamma <- c(0.5,-0.5)
+#' beta <- c(1,-1)
+#' hazard <- Z*exp(X1/2 - X2/2)
+#' C <- runif(1,0,5.8)
+#' t <- 0
+#' tlast <- t
+#' y <- t + X1-X2 + Z1*X2 + rnorm(1,0,1)
+#' wait <- rexp(1,hazard)
+#' while(tlast+wait<C){
+#'   tnew <- tlast+wait
+#'     y <- c(y,tnew + X1-X2 + Z1*X2 + rnorm(1,0,1))
+#'     t <- c(t,tnew)
+#'     tlast <- tnew
+#'     wait <- rexp(1,hazard)
+#'  }
+#'  datai <- list(id=rep(id,length(t)),t=t,y=y,
+#'       X1=rep(X1,length(t)),X2=rep(X2,length(t)),C=rep(C,length(t)))
+#'  return(datai)
+#'  }
+#'  sim1 <- function(it,nsubj){
+#'  data <- lapply(1:nsubj,datasimi)
+#'  data <- as.data.frame(rbindlist(data))
+#'  data$event <- 1
+#'  C <- tapply(data$C,data$id,mean)
+#'  tapply(data$C,data$id,sd)
+#'  maxfu <- cbind(1:nsubj,C)
+#'  maxfu <- as.data.frame(maxfu)
+#'  res <- Liangint(data=data, id="id",time="t",Yname="y",
+#'             Xnames=c("t","X1","X2"),
+#'             Wnames=c("X2"),Znames=c("X1","X2"), formulaobs=Surv(t.lag,t,event)~X1
+#'             + X2+ frailty(id),invariant=c
+#'             ("id","X1","X2"),lagvars="t",lagfirst=NA,maxfu=maxfu,
+#'             baseline=1)
+#'  return(res)
+#'  }
+#'  # change n to 500 to replicate results of Liang et al.
+#'  n <- 10
+#'  s <- lapply(1:n,sim1,nsubj=200)
+#'  smat <- matrix(unlist(s),byrow=TRUE,ncol=4)
+#'  apply(smat,2,mean)
+#'  }
+
+Liangint <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,time, invariant=NULL,lagvars=NULL,lagfirst=NULL,maxfu,baseline,Xfn=NULL,Wfn=NULL,... ){
+
+    fn <- function(t,tvec) return(which.min(abs(t-tvec)))
+
+    # redo id variable so ids are numbered using consecutive integers
+    ids <- names(table(data[,names(data)%in%id]))
+    idnum <- array(dim=nrow(data))
+    for(i in 1:nrow(data)) idnum[i] <- (1:length(ids))[data[i,names(data)%in%id]==ids]
+    if(is.data.frame(maxfu)){ maxfu.use <- maxfu; for(i in 1:nrow(maxfu)){ maxfu.use[i,names(maxfu)%in%id] <- (1:length(ids))[maxfu[i,names(maxfu)%in%id]==ids]}}
+    data[,names(data)%in%id] <- idnum
+
+    if(is.null(maxfu)){ maxtable <- tapply(data[,names(data)%in%time],data[,names(data)%in%id],max); maxfu.use <- cbind(1:length(maxtable),maxtable + max(maxtable)*0.001)}
+
+
+
+  W <- data[,names(data) %in% Wnames]
+
+  Xcols <- (1:ncol(data))[is.finite(match(names(data), Xnames))]
+  Wcols <- (1:ncol(data))[is.finite(match(names(data), Wnames))]
+  Zcols <- (1:ncol(data))[is.finite(match(names(data), Znames))]
+
+  X <- array(data.matrix(data[,Xcols]),dim=c(nrow(data),length(Xnames)))
+  W <- array(data.matrix(data[,Wcols]),dim=c(nrow(data),length(Wnames)))
+  Z <- array(data.matrix(data[,Zcols]),dim=c(nrow(data),length(Znames)))
+
+# add an intercept
+    X <- cbind(rep(1,nrow(X)),X)
+
+  ids <- as.numeric(names(table(data[,names(data)%in%id])))
+  n <- length(ids)
+
+  # Compute Lambdahat
+
+  if(length(maxfu)==1) maxfu.use <- cbind(idnum,rep(maxfu,length(idnum)))
+
+  maxfu.use <- maxfu.use[order(maxfu.use[,1]),]
+  data <- data[order(idnum),]
+
+  # create vector of censoring times
+  if(length(maxfu)==1){
+    Ci <- rep(maxfu,n)
+
+    maxfu.use <- maxfu.use[order(maxfu.use[,1]),]
+    ids <- as.numeric(names(table(data[,names(data)%in%id])))
+    data$event <- 1
+  }
+  if(length(maxfu)>1){
+    maxfu.use <- maxfu.use[order(maxfu[,1]),]
+    ids <- as.numeric(names(table(data[,names(data)%in%id])))
+    Ci <- as.vector(maxfu.use[order(maxfu.use[,1]),2])
+    data$event <- 1
+  }
+  lagcols <- (1:ncol(data))[is.finite(match(names(data), time))]
+
+  # create dataset for fitting visit intensity model - add censored rows and lag variables
+  datacox <- addcensoredrows(data=data,maxfu=maxfu,tinvarcols=invariant,id=id,time=time,event="event")
+  datacox <- lagfn(datacox,lagvars,id,time,lagfirst=lagfirst)
+
+  formulacov <- Surv(time.lag,time,event)~Znames + cluster(id)
+  formulacox <- Surv(time.lag,time,event)~Znames + (1|id)
+#  row.names(datacox)[datacox$event==1] <- row.names(data)
+
+  use <- (1:nrow(datacox))[(!is.na(datacox[,names(datacox)%in%paste(time,".lag",sep="")]))]
+  datacoxuse <- datacox[use,]
+  use <- (1:nrow(datacoxuse))[datacoxuse[,names(datacoxuse)%in%time]-datacoxuse[,names(datacoxuse)%in%paste(time,".lag",sep="")]>0]
+  datacoxuse <- datacoxuse[use,]
+  row.names(datacoxuse) <- 1:nrow(datacoxuse)
+
+  # fit frailty model
+  mcov <- coxph(formula=formulaobs,data=datacoxuse)
+  data$lp <- Z%*%mcov$coefficients
+  lp <- tapply(data$lp,data[,names(data)%in%id],mean,na.rm=TRUE)
+  print(summary(mcov))
+  print(summary(lp))
+
+  # Compute cumulative hazard Lambdahat
+  data0 <- data
+  if(baseline==1){ data0 <- data[data[,names(data)%in%time]>0,]}
+  integrand <- cbind(data0[,names(data0)%in%time],data0$event,1/apply(sweep(outer(Ci,data0[,names(data0)%in%time],">="),1,exp(lp),"*"),2,sum))
+  Hazard0fn <- function(t) return(sum(integrand[integrand[,1]<=t & integrand[,2]==1,3]))
+  Hazard0fns <- function(t) return(sapply(t,Hazard0fn))
+  Hazard0 <- Hazard0fns(Ci)
+
+
+  Lambdahat <- Hazard0*exp(lp)
+
+  # this is the frailty variance
+  sigmahatsq <- mcov$history[[1]]$history[nrow(mcov$history[[1]]$history),1]
+  print(paste("sigmahatsq=",sigmahatsq,sep=""))
+
+
+
+
+  mi <- tapply(data[, names(data) %in% id], data[, names(data) %in% id], length) - baseline
+
+
+  # compute estimate of B
+  mi.Lambdahat <- mi/Hazard0
+  mi.Lambdahat[mi==0 & Lambdahat==0] <- 1
+
+  Bhat <- array(dim=c(nrow(data),ncol(W)))
+  Bbar <- Bhat
+  Xbar <- array(dim=c(nrow(data),ncol(X)))
+
+  Bmultiplier <- array(dim=nrow(data))
+  Bmultid <- (mi - Lambdahat)*sigmahatsq/(1+Lambdahat*sigmahatsq)
+  ids <- as.numeric(names(table(ids)))
+  for(i in 1:n) Bmultiplier[data[,names(data)%in%id]==ids[i]] <- Bmultid[i]
+  Bhat <- sweep(array(W,dim=c(nrow(data),ncol(W))),1,Bmultiplier,"*")
+
+
+
+  regX <- array(X,dim=c(nrow(data),ncol(X)))[data[,names(data)%in%time]>0,]
+  regB <- array(Bhat,dim=c(nrow(data),ncol(W)))[data[,names(data)%in%time]>0,]
+  regY <- data[,names(data)%in%Yname][data[,names(data)%in%time]>0]
+  regpredictor <- cbind(regX,regB)
+  if(sigmahatsq>0) beta <- solve(t(regpredictor)%*%regpredictor,t(regpredictor)%*%regY)
+  if(sigmahatsq==0) beta <- c(solve(t(regX)%*%regX,t(regX)%*%regY),NA)
+
+
+
+  return(drop(beta))
 }
 
 
