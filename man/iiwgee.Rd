@@ -17,11 +17,12 @@ iiwgee(
   invariant = NULL,
   maxfu,
   lagfirst,
-  first
+  first,
+  stabilize.loess = FALSE
 )
 }
 \arguments{
-\item{formulagee}{the formula for the GEE model to be fit. The syntax used is the same as in geeglm}
+\item{formulagee}{the formula for the GEE model to be fit. The syntax used is the same as in glm}
 
 \item{formulaph}{the formula for the proportional hazards model for the visit intensity that will be used to derive inverse-intensity weights. The formula should usually use the counting process format (i.e. Surv(start,stop,event))}
 
@@ -35,7 +36,7 @@ iiwgee(
 
 \item{event}{character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones}
 
-\item{family}{family to be used in the GEE fit. See geeglm for documentation}
+\item{family}{family to be used in the GEE fit. See geeM for documentation}
 
 \item{lagvars}{a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit}
 
@@ -46,10 +47,12 @@ iiwgee(
 \item{lagfirst}{A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
 
 \item{first}{logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.}
+
+\item{stabilize.loess}{logical variable. If TRUE, additional stabilization is done by fitting a loess of the (stabilized) weights versus time, then dividing the observed weights by the predicted values}
 }
 \value{
 a list, with the following elements:
-\item{geefit}{the fitted GEE, see documentation for geeglm for details}
+\item{geefit}{the fitted GEE, see documentation for geeM for details}
 \item{phfit}{the fitted proportional hazards model, see documentation for coxph for details}
 }
 \description{
@@ -63,7 +66,7 @@ Warning: Due to the way some gee functions incorporate weights, if using inverse
 library(nlme)
 data(Phenobarb)
 library(survival)
-library(geepack)
+library(geeM)
 library(data.table)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 data <- Phenobarb
@@ -79,10 +82,12 @@ summary(miiwgee$geefit)
 summary(miiwgee$phfit)
 
 # compare to results without weighting
-m <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data); print(summary(m))
+data$time3 <- (data$time^3)/mean(data$time^3)
+data$logtime <- log(data$time)
+m <- geem(conc ~ time3 + logtime , id=Subject, data=data); print(summary(m))
 time <- (1:200)
-unweighted <- cbind(rep(1,200),time^3,log(time))\%*\%m$coefficients
-weighted <- cbind(rep(1,200),time^3,log(time))\%*\%miiwgee$geefit$coefficients
+unweighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))\%*\%m$beta
+weighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))\%*\%miiwgee$geefit$beta
 plot(data$time,data$conc,xlim=c(0,200),pch=16)
 lines(time,unweighted,type="l")
 lines(time,weighted,col=2)
@@ -95,7 +100,7 @@ legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n"
 }
 \seealso{
 Other iiw: 
-\code{\link{iiw.weights}()},
-\code{\link{iiw}()}
+\code{\link{iiw}()},
+\code{\link{iiw.weights}()}
 }
 \concept{iiw}

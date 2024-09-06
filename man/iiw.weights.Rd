@@ -15,7 +15,8 @@ iiw.weights(
   invariant = NULL,
   maxfu,
   lagfirst = lagfirst,
-  first
+  first,
+  stabilize.loess = FALSE
 )
 }
 \arguments{
@@ -40,12 +41,14 @@ iiw.weights(
 \item{lagfirst}{A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
 
 \item{first}{logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.}
+
+\item{stabilize.loess}{logical variable. If TRUE, additional stabilization is done by fitting a loess of the (stabilized) weights versus time, then dividing the observed weights by the predicted values}
 }
 \value{
 a vector of inverse-intensity weights, ordered on id then time
 }
 \description{
-Since the vector of weights is ordered on id and time, if you intend to merge these weights onto your original dataset it is highly recommended that you sort the data before running iiw.weights
+Since the vector of weights is ordered on id and time, if you intend to merge these weights onto your original dataset it is highly recommended that you sort the data before running iiw.weights. The loess.stabilize  option is designed to avoid time trends in the weights. This option fits a loess smooth of the weights vs. time, then divides by the predicted value.
 }
 \details{
 Given longitudinal data with irregular visit times, fit a Cox proportional hazards model for the visit intensity, then use it to compute inverse-intensity weights
@@ -54,7 +57,7 @@ Given longitudinal data with irregular visit times, fit a Cox proportional hazar
 library(nlme)
 data(Phenobarb)
 library(survival)
-library(geepack)
+library(geeM)
 library(data.table)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 data <- Phenobarb
@@ -68,7 +71,7 @@ invariant="id",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
 data$weight <- i$iiw.weight
 summary(i$m)
 # can use to fit a weighted GEE
-mw <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=weight)
+mw <- geem(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=weight)
 summary(mw)
 # agrees with results through the single command iiwgee
 miiwgee <- iiwgee(conc ~ I(time^3) + log(time),
@@ -85,11 +88,11 @@ summary(miiwgee$geefit)
 }
 \seealso{
 Other iiw: 
-\code{\link{iiwgee}()},
-\code{\link{iiw}()}
+\code{\link{iiw}()},
+\code{\link{iiwgee}()}
 
 Other iiw: 
-\code{\link{iiwgee}()},
-\code{\link{iiw}()}
+\code{\link{iiw}()},
+\code{\link{iiwgee}()}
 }
 \concept{iiw}
