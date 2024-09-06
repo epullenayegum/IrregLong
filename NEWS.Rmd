@@ -1,7 +1,7 @@
 ---
 title: "News"
 author: "Eleanor Pullenayegum"
-date: "February 18, 2022"
+date: "September 5, 2024"
 output:
   html_document:
     df_print: paged
@@ -10,6 +10,16 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+# IrregLong 0.4.0
+## Major changes
+* added Liangint, a function to estimate a semi-parametric joint model that includes an intercept term
+* added clustered.bootstrap, a function to create a single bootstrapped dataset from data with one clustering variable
+
+## Minor changes
+* due to possible archival of the geepack package, GEEs are now estimated using geem from the geeM package
+* added option (loess.stabilize) in iiw.weights to add additional stabilization to avoid time trends in the weights.
+
 
 # IrregLong 0.3.4
 ## Minor changes
