@@ -36,7 +36,7 @@ iiw.weights(
 
 \item{invariant}{a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model}
 
-\item{maxfu}{the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data}
+\item{maxfu}{the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.}
 
 \item{lagfirst}{A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
 
@@ -57,7 +57,7 @@ Given longitudinal data with irregular visit times, fit a Cox proportional hazar
 library(nlme)
 data(Phenobarb)
 library(survival)
-library(geeM)
+library(geepack)
 library(data.table)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 data <- Phenobarb
@@ -71,7 +71,7 @@ invariant="id",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
 data$weight <- i$iiw.weight
 summary(i$m)
 # can use to fit a weighted GEE
-mw <- geem(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=weight)
+mw <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=weight)
 summary(mw)
 # agrees with results through the single command iiwgee
 miiwgee <- iiwgee(conc ~ I(time^3) + log(time),
