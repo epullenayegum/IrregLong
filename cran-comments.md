@@ -1,7 +1,7 @@
 ---
 title: "cran-comments"
 author: "Eleanor Pullenayegum"
-date: "February 18, 2022"
+date: "September 5, 2024"
 output: html_document
 ---
 
@@ -12,11 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ## R Markdown
 
 ## Test environments
-* local OS Windows 10, R 4.1.2
-* remote OS Windows 10, R 4.1.2
-* macOS 12, R 4.1.2
-* Ubuntu Linux 20.04 LTS, R 4.1.2
-* Ubuntu Linux 20.04 LTS, R devel
+* local OS Windows 10, R 4.4.1
+* remote OS Windows 10, R 4.1.1
+* macOS release, R 4.1.1
+
 
 
 
