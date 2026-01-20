@@ -50,7 +50,7 @@ Creates an abacus plot, depicting visits per subject over time
 This function creates a plot for n randomly sampled individuals from the supplied dataset, with one row per subject and one point per visit. This can be useful for visualising the extent of irregularity in the visit process. For example, with perfect repeated measures data (i.e., no irregularity), the points will line up vertically. With greater irregularity, the points will be randomly scattered over time.
 }
 \examples{
-library(MEMSS)
+library(nlme)
 data(Phenobarb)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 data <- Phenobarb[Phenobarb$event==1,]

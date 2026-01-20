@@ -122,6 +122,6 @@ while(tlast+wait<C){
 \references{
 \itemize{
 \item Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.
-\item Pullenayegum EM, Birken C, Maguire J. Causal inference with longitudinal data subject to irregular assessment times. Statistics in Medicine. 2023; 42(14): 2361–2393. doi: 10.1002/sim.9727
+\item Pullenayegum EM, Birken C, Maguire J. Causal inference with longitudinal data subject to irregular assessment times. Statistics in Medicine. 2023; 42(14): 2361–2393. <doi: 10.1002/sim.9727>
 }
 }

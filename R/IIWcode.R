@@ -1,5 +1,5 @@
 
-#' @import stats survival geeM data.table graphics
+#' @import stats survival geepack data.table graphics
 #' @importFrom stats runif formula model.matrix predict terms
 #' @importFrom graphics plot points segments
 #' @importFrom data.table data.table setkey setkeyv rbindlist shift := .SD first
@@ -174,7 +174,7 @@ phfn <- function(datacox,regcols,data){
 #' @examples
 #' library(nlme)
 #' library(survival)
-#' library(geeM)
+#' library(geepack)
 #' library(data.table)
 #' data(Phenobarb)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
@@ -215,15 +215,15 @@ iiw <- function(phfit,data,id,time,first){
 #' @param id character string indicating which column of the data identifies subjects
 #' @param time character string indicating which column of the data contains the time at which the visit occurred
 #' @param event character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones
-#' @param family family to be used in the GEE fit. See geeM for documentation
+#' @param family family to be used in the GEE fit. See geeglm for documentation
 #' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
 #' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model
-#' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
+#' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
 #' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @param stabilize.loess logical variable. If TRUE, additional stabilization is done by fitting a loess of the (stabilized) weights versus time, then dividing the observed weights by the predicted values
 #' @return a list, with the following elements:
-#' \item{geefit}{the fitted GEE, see documentation for geeM for details}
+#' \item{geefit}{the fitted GEE, see documentation for geeglm for details}
 #' \item{phfit}{the fitted proportional hazards model, see documentation for coxph for details}
 #' @references
 #' \itemize{
@@ -233,7 +233,7 @@ iiw <- function(phfit,data,id,time,first){
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
-#' library(geeM)
+#' library(geepack)
 #' library(data.table)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 #' data <- Phenobarb
@@ -251,10 +251,10 @@ iiw <- function(phfit,data,id,time,first){
 #' # compare to results without weighting
 #' data$time3 <- (data$time^3)/mean(data$time^3)
 #' data$logtime <- log(data$time)
-#' m <- geem(conc ~ time3 + logtime , id=Subject, data=data); print(summary(m))
+#' m <- geeglm(conc ~ time3 + logtime , id=Subject, data=data); print(summary(m))
 #' time <- (1:200)
-#' unweighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))%*%m$beta
-#' weighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))%*%miiwgee$geefit$beta
+#' unweighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))%*%m$coefficients
+#' weighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))%*%miiwgee$geefit$coefficients
 #' plot(data$time,data$conc,xlim=c(0,200),pch=16)
 #' lines(time,unweighted,type="l")
 #' lines(time,weighted,col=2)
@@ -279,7 +279,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 	useweight <- data$useweight
 	iddup <- data$iddup
 
-	mgee <- geem(formulagee,id=iddup,data=data,corstr="independence",weights=useweight,family=family)
+	mgee <- geeglm(formulagee,id=iddup,data=data,corstr="independence",weights=useweight,family=family)
 	return(list(geefit=mgee,phfit=m))
 }
 
@@ -295,7 +295,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' @param event character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones
 #' @param lagvars a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit
 #' @param invariant a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model
-#' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data
+#' @param maxfu the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.
 #' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @param stabilize.loess logical variable. If TRUE, additional stabilization is done by fitting a loess of the (stabilized) weights versus time, then dividing the observed weights by the predicted values
@@ -309,7 +309,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
-#' library(geeM)
+#' library(geepack)
 #' library(data.table)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 #' data <- Phenobarb
@@ -323,7 +323,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' data$weight <- i$iiw.weight
 #' summary(i$m)
 #' # can use to fit a weighted GEE
-#' mw <- geem(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=weight)
+#' mw <- geeglm(conc ~ I(time^3) + log(time) , id=Subject, data=data, weights=weight)
 #' summary(mw)
 #' # agrees with results through the single command iiwgee
 #' miiwgee <- iiwgee(conc ~ I(time^3) + log(time),
@@ -416,7 +416,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' data(Phenobarb)
 #' library(survival)
 #' library(data.table)
-#' library(geeM)
+#' library(geepack)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 #' data <- Phenobarb
 #' data <- data[data$event==1,]
@@ -519,7 +519,7 @@ outputanalfn <- function(it,fn,data,weights,singleobs,id,time,keep.first,...){
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
-#' library(geeM)
+#' library(geepack)
 #' library(data.table)
 #'
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
@@ -535,8 +535,7 @@ outputanalfn <- function(it,fn,data,weights,singleobs,id,time,keep.first,...){
 #' wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
 #' data$wt <- wt
 #' reg <- function(data){
-#' m <- geem(conc~I(time^3) + log(time), id=id,data=data)
-#' est <- cbind(summary(m)$beta,summary(m)$se.robust)
+#' est <- summary(geeglm(conc~I(time^3) + log(time), id=id,data=data))$coefficients[,1:2]
 #' est <- data.matrix(est)
 #' return(est)
 #' }
