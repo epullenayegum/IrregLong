@@ -18,7 +18,6 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 
 [![CRAN status](https://www.r-pkg.org/badges/version/IrregLong)](https://CRAN.R-project.org/package=IrregLong)
-[![R-CMD-check](https://github.com/epullenayegum/IrregLong/workflows/R-CMD-check/badge.svg)](https://github.com/epullenayegum/IrregLong/actions)
 [![R-CMD-check](https://github.com/epullenayegum/IrregLong/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/epullenayegum/IrregLong/actions/workflows/R-CMD-check.yaml)
 [![check-standard](https://github.com/epullenayegum/IrregLong/actions/workflows/check-standard.yaml/badge.svg)](https://github.com/epullenayegum/IrregLong/actions/workflows/check-standard.yaml)
 <!-- badges: end -->
