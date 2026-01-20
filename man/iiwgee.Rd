@@ -36,13 +36,13 @@ iiwgee(
 
 \item{event}{character string indicating which column of the data indicates whether or not a visit occurred. If every row corresponds to a visit, then this column will consist entirely of ones}
 
-\item{family}{family to be used in the GEE fit. See geeM for documentation}
+\item{family}{family to be used in the GEE fit. See geeglm for documentation}
 
 \item{lagvars}{a vector of variable names corresponding to variables which need to be lagged by one visit to fit the visit intensity model. Typically time will be one of these variables. The function will internally add columns to the data containing the values of the lagged variables from the previous visit. Values of lagged variables for a subject's first visit will be set to NA. To access these variables in specifying the proportional hazards formulae, add ".lag" to the variable you wish to lag. For example, if time is the variable for time, time.lag is the time of the previous visit}
 
 \item{invariant}{a vector of variable names corresponding to variables in data that are time-invariant. It is not necessary to list every such variable, just those that are invariant and also included in the proportional hazards model}
 
-\item{maxfu}{the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, maxfu should have the same number of elements as there are rows of data}
+\item{maxfu}{the maximum follow-up time(s). If everyone is followed for the same length of time, this can be given as a single value. If individuals have different follow-up times, Otherwise, maxfu should be a dataframe with the first column specifying subject identifiers and the second giving the follow-up time for each subject.}
 
 \item{lagfirst}{A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero}
 
@@ -52,7 +52,7 @@ iiwgee(
 }
 \value{
 a list, with the following elements:
-\item{geefit}{the fitted GEE, see documentation for geeM for details}
+\item{geefit}{the fitted GEE, see documentation for geeglm for details}
 \item{phfit}{the fitted proportional hazards model, see documentation for coxph for details}
 }
 \description{
@@ -66,7 +66,7 @@ Warning: Due to the way some gee functions incorporate weights, if using inverse
 library(nlme)
 data(Phenobarb)
 library(survival)
-library(geeM)
+library(geepack)
 library(data.table)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 data <- Phenobarb
@@ -84,10 +84,10 @@ summary(miiwgee$phfit)
 # compare to results without weighting
 data$time3 <- (data$time^3)/mean(data$time^3)
 data$logtime <- log(data$time)
-m <- geem(conc ~ time3 + logtime , id=Subject, data=data); print(summary(m))
+m <- geeglm(conc ~ time3 + logtime , id=Subject, data=data); print(summary(m))
 time <- (1:200)
-unweighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))\%*\%m$beta
-weighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))\%*\%miiwgee$geefit$beta
+unweighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))\%*\%m$coefficients
+weighted <- cbind(rep(1,200),time^3/mean(data$time^3),log(time))\%*\%miiwgee$geefit$coefficients
 plot(data$time,data$conc,xlim=c(0,200),pch=16)
 lines(time,unweighted,type="l")
 lines(time,weighted,col=2)
