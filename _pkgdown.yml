@@ -4,6 +4,7 @@ url: https://epullenayegum.github.io/IrregLong/
 
 template:
   bootstrap: 5
+  math-rendering: mathjax
 home:
   title: R package IrregLong for analysing longitudinal data with irregular observation
     times
@@ -38,7 +39,10 @@ reference:
 - title: Semi-parametric joint model
   desc: |
     Functions for fitting the Liang semi-parametric joint model
-  contents: Liang
+  contents:
+  - Liang
+  - Liangint
+  - create.bootstrapped.dataset
 - title: Low-level functions
   desc: |
     Functions for constructing the inverse-intensity weights manually
