@@ -1,0 +1,197 @@
+# Fit a semi-parametric joint model
+
+Fits a semi-parametric joint model as described by Liang et al. (2009).
+
+## Usage
+
+``` r
+Liang(
+  data,
+  Yname,
+  Xnames,
+  Wnames,
+  Znames = NULL,
+  formulaobs = NULL,
+  id,
+  time,
+  invariant = NULL,
+  lagvars = NULL,
+  lagfirst = NULL,
+  maxfu,
+  baseline,
+  Xfn = NULL,
+  Wfn = NULL,
+  ...
+)
+```
+
+## Arguments
+
+- data:
+
+  data frame containing the variables in the model
+
+- Yname:
+
+  character string indicating the column containing the outcome variable
+
+- Xnames:
+
+  vector of character strings indicating the names of the columns of the
+  fixed effects in the outcome regression model
+
+- Wnames:
+
+  vector of character strings indicating the names of the columns of the
+  random effects in the outcome regression model
+
+- Znames:
+
+  vector of character strings indicating the names of the columns of the
+  covariates in the visit intensity model
+
+- formulaobs:
+
+  formula for the observation intensity model
+
+- id:
+
+  character string indicating which column of the data identifies
+  subjects
+
+- time:
+
+  character string indicating which column of the data contains the time
+  at which the visit occurred
+
+- invariant:
+
+  a vector of variable names corresponding to variables in data that are
+  time-invariant. It is not necessary to list every such variable, just
+  those that are invariant and also included in the visit intensity
+  model
+
+- lagvars:
+
+  a vector of variable names corresponding to variables which need to be
+  lagged by one visit to fit the visit intensity model. Typically time
+  will be one of these variables. The function will internally add
+  columns to the data containing the values of the lagged variables from
+  the previous visit. Values of lagged variables for a subject's first
+  visit will be set to NA. To access these variables in specifying the
+  proportional hazards formulae, add ".lag" to the variable you wish to
+  lag. For example, if time is the variable for time, time.lag is the
+  time of the previous visit
+
+- lagfirst:
+
+  A vector giving the value of each lagged variable for the first time
+  within each subject. This is helpful if, for example, time is the
+  variable to be lagged and you know that all subjects entered the study
+  at time zero
+
+- maxfu:
+
+  The maximum follow-up time per subject. If all subjects have the same
+  follow-up time, this can be supplied as a single number. Otherwise,
+  maxfu should be a dataframe with the first column specifying subject
+  identifiers and the second giving the follow-up time for each subject.
+
+- baseline:
+
+  An indicator for whether baseline (time=0) measurements are included
+  by design. Equal to 1 if yes, 0 if no.
+
+- Xfn:
+
+  A function that takes as its first argument the subject identifier and
+  has time as its second argument, and returns the value of X for the
+  specified subject at the specified time.
+
+- Wfn:
+
+  A function that takes as its first argument the subject identifier and
+  has time as its second argument, and returns the value of W for the
+  specified subject at the specified time
+
+- ...:
+
+  other arguments to Xfn and Yfn
+
+## Value
+
+the regression coefficients corresponding to the fixed effects in the
+outcome regression model. Closed form expressions for standard errors of
+the regression coefficients are not available, and Liang et al (2009)
+recommend obtaining these through bootstrapping.
+
+## Details
+
+This function fits a semi-parametric joint model as described in Liang
+(2009), using a frailty model to estimate the parameters in the visit
+intensity model
+
+The Liang method requires a value of X and W for every time over the
+observation period. If Xfn is left as NULL, then the Liang function will
+use, for each subject and for each time t, the values of X and W at the
+observation time closest to t.
+
+## References
+
+Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data
+with informative observation times. Biometrics 2009; 65:377-384.
+
+## Examples
+
+``` r
+# replicate simulation in Liang et al.
+if (FALSE) { # \dontrun{
+library(data.table)
+library(survival)
+datasimi <- function(id){
+X1 <- runif(1,0,1)
+X2 <- rbinom(1,1,0.5)
+Z <- rgamma(1,1,1)
+Z1 <- rnorm(1,Z-1,1)
+gamma <- c(0.5,-0.5)
+beta <- c(1,-1)
+hazard <- Z*exp(X1/2 - X2/2)
+C <- runif(1,0,5.8)
+t <- 0
+tlast <- t
+y <- t + X1-X2 + Z1*X2 + rnorm(1,0,1)
+wait <- rexp(1,hazard)
+while(tlast+wait<C){
+  tnew <- tlast+wait
+    y <- c(y,tnew + X1-X2 + Z1*X2 + rnorm(1,0,1))
+    t <- c(t,tnew)
+    tlast <- tnew
+    wait <- rexp(1,hazard)
+ }
+ datai <- list(id=rep(id,length(t)),t=t,y=y,
+      X1=rep(X1,length(t)),X2=rep(X2,length(t)),C=rep(C,length(t)))
+ return(datai)
+ }
+ sim1 <- function(it,nsubj){
+ data <- lapply(1:nsubj,datasimi)
+ data <- as.data.frame(rbindlist(data))
+ data$event <- 1
+ C <- tapply(data$C,data$id,mean)
+ tapply(data$C,data$id,sd)
+ maxfu <- cbind(1:nsubj,C)
+ maxfu <- as.data.frame(maxfu)
+ res <- Liang(data=data, id="id",time="t",Yname="y",
+            Xnames=c("X1","X2"),
+            Wnames=c("X2"),Znames=c("X1","X2"), formulaobs=Surv(t.lag,t,event)~X1
+            + X2+ frailty(id),invariant=c
+            ("id","X1","X2"),lagvars="t",lagfirst=NA,maxfu=maxfu,
+            baseline=1)
+ return(res)
+ }
+ # change n to 500 to replicate results of Liang et al.
+ n <- 10
+ s <- lapply(1:n,sim1,nsubj=200)
+ smat <- matrix(unlist(s),byrow=TRUE,ncol=4)
+ apply(smat,2,mean)
+ } # }
+```
