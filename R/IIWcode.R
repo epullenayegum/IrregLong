@@ -944,7 +944,7 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
 #' @param col.abacus the colour of the rails on the abacus plot
 #' @return produces a plot depicting observation times for each subject. No values are returned
 #' @examples
-#' library(MEMSS)
+#' library(nlme)
 #' data(Phenobarb)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 #' data <- Phenobarb[Phenobarb$event==1,]
@@ -1164,7 +1164,7 @@ create.bootstrapped.dataset <- function(data,idname){
 #' @references
 #' \itemize{
 #' \item Liang Y, Lu W, Ying Z. Joint modelling and analysis of longitudinal data with informative observation times. Biometrics 2009; 65:377-384.
-#' \item Pullenayegum EM, Birken C, Maguire J. Causal inference with longitudinal data subject to irregular assessment times. Statistics in Medicine. 2023; 42(14): 2361–2393. doi: 10.1002/sim.9727
+#' \item Pullenayegum EM, Birken C, Maguire J. Causal inference with longitudinal data subject to irregular assessment times. Statistics in Medicine. 2023; 42(14): 2361–2393. <doi: 10.1002/sim.9727>
 #' }
 #'
 #' @export
