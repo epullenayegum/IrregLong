@@ -30,7 +30,7 @@ library(nlme)
 data(Phenobarb)
 library(survival)
 library(data.table)
-library(geeM)
+library(geepack)
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
 data <- Phenobarb
 data <- data[data$event==1,]
