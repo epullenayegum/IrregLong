@@ -48,7 +48,7 @@ Multiple outputation is a procedure whereby excess observations are repeatedly r
 library(nlme)
 data(Phenobarb)
 library(survival)
-library(geeM)
+library(geepack)
 library(data.table)
 
 Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
@@ -64,8 +64,7 @@ wt <- i$iiw.weight
 wt[wt>quantile(i$iiw.weight,0.95)] <- quantile(i$iiw.weight,0.95)
 data$wt <- wt
 reg <- function(data){
-m <- geem(conc~I(time^3) + log(time), id=id,data=data)
-est <- cbind(summary(m)$beta,summary(m)$se.robust)
+est <- summary(geeglm(conc~I(time^3) + log(time), id=id,data=data))$coefficients[,1:2]
 est <- data.matrix(est)
 return(est)
 }
