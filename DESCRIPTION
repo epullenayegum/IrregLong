@@ -14,8 +14,7 @@ License: GPL-3
 RoxygenNote: 7.3.2
 Suggests: knitr,
     rmarkdown,
-    nlme,
-    MEMSS
+    nlme
 VignetteBuilder: knitr
 Language: en-GB
 Encoding: UTF-8
