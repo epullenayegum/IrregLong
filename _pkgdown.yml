@@ -5,6 +5,7 @@ url: https://epullenayegum.github.io/IrregLong/
 template:
   bootstrap: 5
   math-rendering: mathjax
+  light-switch: true
 home:
   title: R package IrregLong for analysing longitudinal data with irregular observation
     times
