@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # IrregLong 0.4.1
 
 ## Minor changes
-* reverted GEE estimation from geem to geeglm due to familiarity of the syntax
+* reverted GEE estimation from geem to geeglm
 
 ## Bug fixes
 * corrected documentation for the argument maxfu
