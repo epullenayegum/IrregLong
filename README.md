@@ -7,7 +7,7 @@
 
 [![CRAN
 status](https://www.r-pkg.org/badges/version/IrregLong)](https://CRAN.R-project.org/package=IrregLong)
-[![R-CMD-check](https://github.com/epullenayegum/IrregLong/workflows/R-CMD-check/badge.svg)](https://github.com/epullenayegum/IrregLong/actions)
+[![R-CMD-check.yaml](https://github.com/epullenayegum/IrregLong/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/epullenayegum/IrregLong/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 The goal of the IrregLong package is to provide functions for handling
