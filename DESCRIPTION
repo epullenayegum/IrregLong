@@ -12,10 +12,12 @@ Depends: R (>= 2.10)
 Imports: survival, geepack, data.table, graphics
 License: GPL-3
 RoxygenNote: 7.3.2
-Suggests: knitr,
+Suggests: 
+    knitr,
     rmarkdown,
-    nlme
+    nlme,
+    spelling
 VignetteBuilder: knitr
-Language: en-GB
+Language: en-US
 Encoding: UTF-8
 URL: https://epullenayegum.github.io/IrregLong/
