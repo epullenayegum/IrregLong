@@ -195,7 +195,7 @@ abacus.plot(n=59,time="time",id="Subject",data=data,tmin=0,tmax=16*24,
  xlab.abacus="Time in hours",pch=16,col.abacus=gray(0.8))
 ```
 
-![](Irreglong-vignette_files/figure-html/unnamed-chunk-3-1.png)
+![](Irreglong-vignette_files/figure-html/unnamed-chunk-4-1.png)
 
 This shows an median of 3 visits per subject with a range of 1 to 6. The
 plot shows that after an initial measurement shortly after birth,
@@ -232,7 +232,7 @@ value of 64, demonstrating a high degree of irregularity.
   formula=Surv(time.lag,time,event)~1,tau=16*24)
 ```
 
-![](Irreglong-vignette_files/figure-html/unnamed-chunk-4-1.png)
+![](Irreglong-vignette_files/figure-html/unnamed-chunk-5-1.png)
 
 ``` r
 counts$auc
