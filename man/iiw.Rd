@@ -24,6 +24,7 @@ A vector of inverse-intensity weights for each row of the dataset. The first obs
 For a longitudinal dataset subject to irregular observation, use a Cox proportional hazards model for visit intensities to compute inverse intensity weights
 }
 \examples{
+\dontshow{if (requireNamespace("nlme", quietly = TRUE)) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
 library(nlme)
 library(survival)
 library(geepack)
@@ -42,6 +43,7 @@ mph <- coxph(Surv(time.lag,time,event)~I(conc.lag>0 & conc.lag<=20) + I(conc.lag
 summary(mph)
 data$weight <- iiw(mph,data,"id","time",TRUE)
 head(data)
+\dontshow{\}) # examplesIf}
 }
 \seealso{
 Other iiw: 

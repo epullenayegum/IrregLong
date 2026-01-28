@@ -54,6 +54,7 @@ Since the vector of weights is ordered on id and time, if you intend to merge th
 Given longitudinal data with irregular visit times, fit a Cox proportional hazards model for the visit intensity, then use it to compute inverse-intensity weights
 }
 \examples{
+\dontshow{if (requireNamespace("nlme", quietly = TRUE)) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
 library(nlme)
 data(Phenobarb)
 library(survival)
@@ -80,6 +81,7 @@ I(conc.lag>20 & conc.lag<=30) + I(conc.lag>30)+ cluster(id),
 id="id",time="time",event="event",data=data,
 invariant="id",lagvars=c("time","conc"),maxfu=16*24,lagfirst=0,first=TRUE)
 summary(miiwgee$geefit)
+\dontshow{\}) # examplesIf}
 }
 \references{
 \itemize{

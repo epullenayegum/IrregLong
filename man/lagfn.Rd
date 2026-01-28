@@ -24,6 +24,7 @@ The original data frame with lagged variables added on as columns. For example, 
 Create lagged versions the variables in data
 }
 \examples{
+\dontshow{if (requireNamespace("nlme", quietly = TRUE)) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
 library(nlme)
 library(data.table)
 data(Phenobarb)
@@ -31,4 +32,5 @@ head(Phenobarb)
 
 data <- lagfn(Phenobarb,"time","Subject","time")
 head(data)
+\dontshow{\}) # examplesIf}
 }

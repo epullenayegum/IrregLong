@@ -63,6 +63,7 @@ Let the outcome of interest be \eqn{Y} and suppose that subject i has \eqn{j^{th
 Warning: Due to the way some gee functions incorporate weights, if using inverse-intensity weighting you should use working independence.
 }
 \examples{
+\dontshow{if (requireNamespace("nlme", quietly = TRUE)) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
 library(nlme)
 data(Phenobarb)
 library(survival)
@@ -92,6 +93,7 @@ plot(data$time,data$conc,xlim=c(0,200),pch=16)
 lines(time,unweighted,type="l")
 lines(time,weighted,col=2)
 legend (0,60,legend=c("Unweighted","Inverse-intensity weighted"),col=1:2,bty="n",lty=1)
+\dontshow{\}) # examplesIf}
 }
 \references{
 \itemize{

@@ -1,7 +1,7 @@
 ---
 title: "News"
 author: "Eleanor Pullenayegum"
-date: "January 23, 2026"
+date: "January 28, 2026"
 output:
   html_document:
     df_print: paged
@@ -17,6 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 * reverted GEE estimation from geem to geeglm
 
 ## Bug fixes
+* Examples are now only executed if the nlme package is in the Namespace
 * corrected documentation for the argument maxfu
 * removed package MEMSS from 'Suggests'
 
@@ -70,7 +71,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 * When using lagged variable, there is an option to include a value for the first lagged observation within each subject.
 * A function (abacus.plot) for producing an abacus plot has been added.
-* The Liang model now allows for time-invariant covariates to be included in the visit process model.
+* The Liang model now allows for 3time-invariant covariates to be included in the visit process model.
 
 
 ## Bug fixes

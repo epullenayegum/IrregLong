@@ -42,7 +42,7 @@ lagby1.1var <- function(x,id,time,lagfirst=NA){
 #' @param time A character indicating which column of the data contains the times at which each of the observations in data was made
 #' @param lagfirst A vector giving the value of each lagged variable for the first time within each subject. This is helpful if, for example, time is the variable to be lagged and you know that all subjects entered the study at time zero
 #' @return The original data frame with lagged variables added on as columns. For example, if the data frame contains a variable named x giving the value of x for each subject i at each visit j, the returned data frame will contain a column named x.lag containing the value of x for subject i at visit j-1. If j is the first visit for subject i, the lagged value is set to NA
-#' @examples
+#' @examplesIf requireNamespace("nlme", quietly = TRUE)
 #' library(nlme)
 #' library(data.table)
 #' data(Phenobarb)
@@ -171,7 +171,7 @@ phfn <- function(datacox,regcols,data){
 #' @param id character string indicating which column of the data identifies subjects
 #' @param first logical variable. If TRUE, the first observation for each individual is assigned an intensity of 1. This is appropriate if the first visit is a baseline visit at which recruitment to the study occurred; in this case the baseline visit is observed with probability 1.
 #' @return A vector of inverse-intensity weights for each row of the dataset. The first observation for each subject is assumed to have an intensity of 1.
-#' @examples
+#' @examplesIf requireNamespace("nlme", quietly = TRUE)
 #' library(nlme)
 #' library(survival)
 #' library(geepack)
@@ -229,7 +229,7 @@ iiw <- function(phfit,data,id,time,first){
 #' \itemize{
 #' \item Lin H, Scharfstein DO, Rosenheck RA. Analysis of Longitudinal data with Irregular, Informative Follow-up. Journal of the Royal Statistical Society, Series B (2004), 66:791-813
 #' \item Buzkova P, Lumley T. Longitudinal data analysis for generalized linear models with follow-up dependent on outcome-related variables. The Canadian Journal of Statistics 2007; 35:485-500.}
-#' @examples
+#' @examplesIf requireNamespace("nlme", quietly = TRUE)
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
@@ -305,7 +305,7 @@ iiwgee <- function(formulagee,formulaph,formulanull=NULL,data,id,time,event,fami
 #' \itemize{
 #' \item Lin H, Scharfstein DO, Rosenheck RA. Analysis of Longitudinal data with Irregular, Informative Follow-up. Journal of the Royal Statistical Society, Series B (2004), 66:791-813
 #' \item Buzkova P, Lumley T. Longitudinal data analysis for generalized linear models with follow-up dependent on outcome-related variables. The Canadian Journal of Statistics 2007; 35:485-500.}
-#' @examples
+#' @examplesIf requireNamespace("nlme", quietly = TRUE)
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
@@ -411,7 +411,7 @@ iiw.weights <- function(formulaph,formulanull=NULL,data,id,time,event,lagvars,in
 #' \item Follmann D, Proschan M, Leifer E. Multiple outputation: inference for complex clustered data by averaging analyses from independent data. Biometrics 2003; 59:420-429
 #' \item Pullenayegum EM. Multiple outputation for the analysis of longitudinal data subject to irregular observation. Statistics in Medicine (in press).}
 #' @family mo
-#' @examples
+#' @examplesIf requireNamespace("nlme", quietly = TRUE)
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
@@ -515,7 +515,7 @@ outputanalfn <- function(it,fn,data,weights,singleobs,id,time,keep.first,...){
 #' \item Follmann D, Proschan M, Leifer E. Multiple outputation: inference for complex clustered data by averaging analyses from independent data. Biometrics 2003; 59:420-429
 #' \item Pullenayegum EM. Multiple outputation for the analysis of longitudinal data subject to irregular observation. Statistics in Medicine (in press)}.
 #' @family mo
-#' @examples
+#' @examplesIf requireNamespace("nlme", quietly = TRUE)
 #' library(nlme)
 #' data(Phenobarb)
 #' library(survival)
@@ -942,7 +942,7 @@ Liang <- function(data,Yname, Xnames, Wnames, Znames=NULL,formulaobs=NULL, id,ti
 #' @param pch.abacus the plotting character for the points on the abacus plot
 #' @param col.abacus the colour of the rails on the abacus plot
 #' @return produces a plot depicting observation times for each subject. No values are returned
-#' @examples
+#' @examplesIf requireNamespace("nlme", quietly = TRUE)
 #' library(nlme)
 #' data(Phenobarb)
 #' Phenobarb$event <- 1-as.numeric(is.na(Phenobarb$conc))
