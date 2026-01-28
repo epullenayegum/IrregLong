@@ -79,6 +79,7 @@ maxfu
 modelling
 ncutpts
 neq
+nlme
 noutput
 outputation
 outputations
@@ -94,4 +95,5 @@ sw
 th
 tinvarcols
 visualising
+yaml
 ’’
